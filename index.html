@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>家計簿アプリ</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+button { margin: 5px; }
+select, input { margin: 5px; }
+.hidden { display: none; }
+table { border-collapse: collapse; margin-top: 10px; }
+th, td { border: 1px solid #ccc; padding: 6px 10px; }
+</style>
+</head>
+<body>
+
+<h2 id="title">家計簿</h2>
+
+<!-- Language -->
+<select id="langSelect">
+  <option value="ja">日本語</option>
+  <option value="en">English</option>
+  <option value="ko">한국어</option>
+</select>
+
+<hr>
+
+<!-- Menu -->
+<div id="menu">
+  <button onclick="showAdd()"></button>
+  <button onclick="showSummary()"></button>
+</div>
+
+<!-- Add -->
+<div id="add" class="hidden">
+  <h3 id="addTitle"></h3>
+  <select id="category"></select>
+  <input type="number" id="amount" placeholder="0">
+  <button onclick="saveData()"></button>
+  <br>
+  <button onclick="backMenu()"></button>
+</div>
+
+<!-- Summary -->
+<div id="summary" class="hidden">
+  <h3 id="summaryTitle"></h3>
+  <select id="monthSelect"></select>
+  <div id="result"></div>
+  <button onclick="backMenu()"></button>
+</div>
+
+<script>
+const texts = {
+  ja: {
+    title: "家計簿",
+    add: "入力",
+    summary: "集計",
+    addTitle: "支出を入力",
+    summaryTitle: "月別・カテゴリ別集計",
+    back: "Menuに戻る",
+    save: "保存",
+    categories: ["食費","光熱費","インターネット","携帯料金","学費","塾・補習校","買い物","ガソリン","外食費","旅行費","その他"]
+  },
+  en: {
+    title: "Household Budget",
+    add: "Add",
+    summary: "Summary",
+    addTitle: "Add Expense",
+    summaryTitle: "Monthly & Category Summary",
+    back: "Back to Menu",
+    save: "Save",
+    categories: ["Food","Utilities","Internet","Mobile","Education","Cram School","Shopping","Gas","Eating Out","Travel","Other"]
+  },
+  ko: {
+    title: "가계부",
+    add: "입력",
+    summary: "요약",
+    addTitle: "지출 입력",
+    summaryTitle: "월별 / 카테고리별 합계",
+    back: "메뉴로",
+    save: "저장",
+    categories: ["식비","공과금","인터넷","휴대폰","학비","학원","쇼핑","주유","외식","여행","기타"]
+  }
+};
+
+let lang = "ja";
+let data = JSON.parse(localStorage.getItem("kakeibo") || "[]");
+
+const langSelect = document.getElementById("langSelect");
+langSelect.onchange = () => {
+  lang = langSelect.value;
+  render();
+};
+
+function render() {
+  const t = texts[lang];
+  document.getElementById("title").innerText = t.title;
+  document.querySelector("#menu button:nth-child(1)").innerText = t.add;
+  document.querySelector("#menu button:nth-child(2)").innerText = t.summary;
+  document.getElementById("addTitle").innerText = t.addTitle;
+  document.getElementById("summaryTitle").innerText = t.summaryTitle;
+  document.querySelectorAll("button[onclick='backMenu()']").forEach(b => b.innerText = t.back);
+  document.querySelector("#add button[onclick='saveData()']").innerText = t.save;
+
+  const cat = document.getElementById("category");
+  cat.innerHTML = "";
+  t.categories.forEach(c => {
+    const o = document.createElement("option");
+    o.text = c;
+    cat.add(o);
+  });
+
+  updateMonths();
+}
+render();
+
+function showAdd() {
+  hideAll();
+  document.getElementById("add").classList.remove("hidden");
+}
+function showSummary() {
+  hideAll();
+  document.getElementById("summary").classList.remove("hidden");
+  showResult();
+}
+function backMenu() {
+  hideAll();
+  document.getElementById("menu").classList.remove("hidden");
+}
+function hideAll() {
+  document.getElementById("menu").classList.add("hidden");
+  document.getElementById("add").classList.add("hidden");
+  document.getElementById("summary").classList.add("hidden");
+}
+
+function saveData() {
+  const amount = document.getElementById("amount").value;
+  if (!amount) return;
+  data.push({
+    month: new Date().toISOString().slice(0,7),
+    category: document.getElementById("category").value,
+    amount: Number(amount)
+  });
+  localStorage.setItem("kakeibo", JSON.stringify(data));
+  document.getElementById("amount").value = "";
+  alert("Saved!");
+}
+
+function updateMonths() {
+  const ms = [...new Set(data.map(d => d.month))];
+  const sel = document.getElementById("monthSelect");
+  sel.innerHTML = "";
+  ms.forEach(m => {
+    const o = document.createElement("option");
+    o.value = m;
+    o.text = m;
+    sel.add(o);
+  });
+}
+
+function showResult() {
+  updateMonths();
+  const month = document.getElementById("monthSelect").value;
+  const filtered = data.filter(d => d.month === month);
+  const sum = {};
+  filtered.forEach(d => sum[d.category] = (sum[d.category] || 0) + d.amount);
+
+  let html = "<table><tr><th>Category</th><th>Total</th></tr>";
+  Object.keys(sum).forEach(k => {
+    html += `<tr><td>${k}</td><td>${sum[k]}</td></tr>`;
+  });
+  html += "</table>";
+  document.getElementById("result").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
