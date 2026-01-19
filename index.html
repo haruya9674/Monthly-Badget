@@ -4,9 +4,10 @@
 <meta charset="UTF-8">
 <title>家計簿アプリ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4CAF93">
+
+<!-- version 2026-01-19 -->
 
 <style>
 :root{
@@ -69,7 +70,6 @@ button.delete{
   padding:10px 0;
   border-bottom:1px solid #eee;
 }
-.summary-item:last-child{ border:none; }
 .history-item{
   border-bottom:1px dashed #ddd;
   padding:10px 0;
@@ -84,14 +84,12 @@ button.delete{
 
 <div class="container">
 
-<!-- 言語 -->
 <select id="langSelect" class="lang">
   <option value="ja">日本語</option>
   <option value="en">English</option>
   <option value="ko">한국어</option>
 </select>
 
-<!-- 通貨 -->
 <select id="currencySelect" class="lang">
   <option value="MYR">MYR（マレーシア）</option>
   <option value="JPY">JPY（日本）</option>
@@ -99,29 +97,26 @@ button.delete{
   <option value="AUD">AUD（オーストラリア）</option>
 </select>
 
-<!-- MENU -->
 <div id="menu">
   <div class="card">
-    <button onclick="showAdd()"></button>
-    <button onclick="showSummary()" style="margin-top:16px;"></button>
+    <button onclick="showAdd()">支出を入力</button>
+    <button onclick="showSummary()" style="margin-top:16px;">集計を見る</button>
   </div>
 </div>
 
-<!-- ADD -->
 <div id="add" class="hidden">
   <div class="card">
-    <h2 id="addTitle"></h2>
+    <h2>支出入力</h2>
     <select id="category"></select>
     <input type="number" id="amount" placeholder="0">
-    <button onclick="saveData()"></button>
-    <button class="secondary" onclick="backMenu()"></button>
+    <button onclick="saveData()">保存</button>
+    <button class="secondary" onclick="backMenu()">Menuに戻る</button>
   </div>
 </div>
 
-<!-- SUMMARY -->
 <div id="summary" class="hidden">
   <div class="card">
-    <h2 id="summaryTitle"></h2>
+    <h2>月別・カテゴリ別</h2>
     <select id="monthSelect" onchange="showResult()"></select>
 
     <h3>合計</h3>
@@ -130,86 +125,39 @@ button.delete{
     <h3 style="margin-top:20px;">入力履歴</h3>
     <div id="history"></div>
 
-    <button class="secondary" onclick="backMenu()"></button>
+    <button class="secondary" onclick="backMenu()">Menuに戻る</button>
   </div>
 </div>
 
 </div>
 
 <script>
-const texts={
-  ja:{
-    title:"家計簿",
-    add:"支出を入力",
-    summary:"集計を見る",
-    addTitle:"支出入力",
-    summaryTitle:"月別・カテゴリ別",
-    back:"Menuに戻る",
-    save:"保存",
-    del:"削除",
-    categories:["食費","家賃","光熱費","インターネット","携帯料金","学費","塾・補習校","買い物","ガソリン","外食費","旅行費","その他"]
-  },
-  en:{
-    title:"Budget",
-    add:"Add Expense",
-    summary:"View Summary",
-    addTitle:"Add Expense",
-    summaryTitle:"Monthly Summary",
-    back:"Back to Menu",
-    save:"Save",
-    del:"Delete",
-    categories:["Food","Rent","Utilities","Internet","Mobile","Education","Cram School","Shopping","Gas","Eating Out","Travel","Other"]
-  },
-  ko:{
-    title:"가계부",
-    add:"지출 입력",
-    summary:"요약 보기",
-    addTitle:"지출 입력",
-    summaryTitle:"월별 요약",
-    back:"메뉴로",
-    save:"저장",
-    del:"삭제",
-    categories:["식비","월세","공과금","인터넷","휴대폰","학비","학원","쇼핑","주유","외식","여행","기타"]
-  }
-};
+const categories=[
+  "食費","家賃","光熱費","インターネット","携帯料金",
+  "学費","塾・補習校","買い物","ガソリン",
+  "外食費","旅行費","その他"
+];
 
-let lang="ja";
-let currency=localStorage.getItem("currency")||"MYR";
 let data=JSON.parse(localStorage.getItem("kakeibo")||"[]");
+let currency=localStorage.getItem("currency")||"MYR";
 
 currencySelect.value=currency;
 
-langSelect.onchange=()=>{lang=langSelect.value;render();};
+categories.forEach(c=>{
+  const o=document.createElement("option");
+  o.text=c;
+  category.add(o);
+});
+
 currencySelect.onchange=()=>{
   currency=currencySelect.value;
   localStorage.setItem("currency",currency);
   showResult();
 };
 
-function render(){
-  const t=texts[lang];
-  title.innerText=t.title;
-  document.querySelector("#menu button:nth-child(1)").innerText=t.add;
-  document.querySelector("#menu button:nth-child(2)").innerText=t.summary;
-  addTitle.innerText=t.addTitle;
-  summaryTitle.innerText=t.summaryTitle;
-  document.querySelectorAll(".secondary").forEach(b=>b.innerText=t.back);
-  document.querySelector("#add button:not(.secondary)").innerText=t.save;
-
-  category.innerHTML="";
-  t.categories.forEach(c=>{
-    const o=document.createElement("option");
-    o.text=c;
-    category.add(o);
-  });
-
-  updateMonths();
-}
-render();
-
-function showAdd(){hideAll();add.classList.remove("hidden");}
-function showSummary(){hideAll();summary.classList.remove("hidden");updateMonths();showResult();}
-function backMenu(){hideAll();menu.classList.remove("hidden");}
+function showAdd(){ hideAll(); add.classList.remove("hidden"); }
+function showSummary(){ hideAll(); summary.classList.remove("hidden"); updateMonths(); showResult(); }
+function backMenu(){ hideAll(); menu.classList.remove("hidden"); }
 function hideAll(){
   menu.classList.add("hidden");
   add.classList.add("hidden");
@@ -217,7 +165,7 @@ function hideAll(){
 }
 
 function saveData(){
-  if(!amount.value)return;
+  if(!amount.value) return;
   data.push({
     id:Date.now(),
     month:new Date().toISOString().slice(0,7),
@@ -226,7 +174,7 @@ function saveData(){
   });
   localStorage.setItem("kakeibo",JSON.stringify(data));
   amount.value="";
-  alert("Saved");
+  alert("保存しました");
 }
 
 function updateMonths(){
@@ -240,36 +188,33 @@ function updateMonths(){
 }
 
 function showResult(){
-  if(!monthSelect.value)return;
-  const t=texts[lang];
+  if(!monthSelect.value) return;
   const month=monthSelect.value;
   const filtered=data.filter(d=>d.month===month);
 
-  // 合計
   const sum={};
   filtered.forEach(d=>sum[d.category]=(sum[d.category]||0)+d.amount);
+
   result.innerHTML=Object.keys(sum).map(k=>
     `<div class="summary-item"><span>${k}</span><strong>${sum[k]} ${currency}</strong></div>`
-  ).join("")||"<p>データなし</p>";
+  ).join("") || "<p>データなし</p>";
 
-  // 履歴
   history.innerHTML=filtered.map(d=>`
     <div class="history-item">
       ${d.category}：${d.amount} ${currency}
-      <button class="delete" onclick="deleteItem(${d.id})">${t.del}</button>
+      <button class="delete" onclick="deleteItem(${d.id})">削除</button>
     </div>
   `).join("");
 }
 
 function deleteItem(id){
-  if(!confirm("削除しますか？"))return;
+  if(!confirm("削除しますか？")) return;
   data=data.filter(d=>d.id!==id);
   localStorage.setItem("kakeibo",JSON.stringify(data));
   updateMonths();
   showResult();
 }
 
-// PWA
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("service-worker.js");
 }
