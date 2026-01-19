@@ -5,6 +5,9 @@
 <title>家計簿アプリ</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4CAF93">
+
 <style>
 :root{
   --main:#4CAF93;
@@ -12,14 +15,12 @@
   --card:#ffffff;
   --text:#333;
 }
-
 body{
   margin:0;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   background:var(--bg);
   color:var(--text);
 }
-
 header{
   background:var(--main);
   color:#fff;
@@ -28,11 +29,7 @@ header{
   text-align:center;
   font-weight:bold;
 }
-
-.container{
-  padding:20px;
-}
-
+.container{ padding:20px; }
 button, select, input{
   width:100%;
   font-size:20px;
@@ -41,18 +38,15 @@ button, select, input{
   border-radius:12px;
   border:none;
 }
-
 button{
   background:var(--main);
   color:#fff;
   font-weight:bold;
 }
-
 button.secondary{
   background:#ccc;
   color:#333;
 }
-
 .card{
   background:var(--card);
   border-radius:16px;
@@ -60,9 +54,7 @@ button.secondary{
   margin-bottom:20px;
   box-shadow:0 4px 10px rgba(0,0,0,0.05);
 }
-
-.hidden{display:none;}
-
+.hidden{ display:none; }
 .summary-item{
   display:flex;
   justify-content:space-between;
@@ -70,15 +62,8 @@ button.secondary{
   padding:10px 0;
   border-bottom:1px solid #eee;
 }
-
-.summary-item:last-child{
-  border:none;
-}
-
-.lang{
-  font-size:18px;
-  margin-bottom:10px;
-}
+.summary-item:last-child{ border:none; }
+.lang{ font-size:18px; margin-bottom:10px; }
 </style>
 </head>
 
@@ -135,7 +120,11 @@ const texts={
     summaryTitle:"月別・カテゴリ別",
     back:"Menuに戻る",
     save:"保存",
-    categories:["食費","光熱費","インターネット","携帯料金","学費","塾・補習校","買い物","ガソリン","外食費","旅行費","その他"]
+    categories:[
+      "食費","家賃","光熱費","インターネット","携帯料金",
+      "学費","塾・補習校","買い物","ガソリン",
+      "外食費","旅行費","その他"
+    ]
   },
   en:{
     title:"Budget",
@@ -145,7 +134,11 @@ const texts={
     summaryTitle:"Monthly Summary",
     back:"Back to Menu",
     save:"Save",
-    categories:["Food","Utilities","Internet","Mobile","Education","Cram School","Shopping","Gas","Eating Out","Travel","Other"]
+    categories:[
+      "Food","Rent","Utilities","Internet","Mobile",
+      "Education","Cram School","Shopping","Gas",
+      "Eating Out","Travel","Other"
+    ]
   },
   ko:{
     title:"가계부",
@@ -155,14 +148,17 @@ const texts={
     summaryTitle:"월별 요약",
     back:"메뉴로",
     save:"저장",
-    categories:["식비","공과금","인터넷","휴대폰","학비","학원","쇼핑","주유","외식","여행","기타"]
+    categories:[
+      "식비","월세","공과금","인터넷","휴대폰",
+      "학비","학원","쇼핑","주유",
+      "외식","여행","기타"
+    ]
   }
 };
 
 let lang="ja";
 let data=JSON.parse(localStorage.getItem("kakeibo")||"[]");
 
-const langSelect=document.getElementById("langSelect");
 langSelect.onchange=()=>{lang=langSelect.value;render();};
 
 function render(){
@@ -188,7 +184,11 @@ render();
 function showAdd(){hideAll();add.classList.remove("hidden");}
 function showSummary(){hideAll();summary.classList.remove("hidden");showResult();}
 function backMenu(){hideAll();menu.classList.remove("hidden");}
-function hideAll(){menu.classList.add("hidden");add.classList.add("hidden");summary.classList.add("hidden");}
+function hideAll(){
+  menu.classList.add("hidden");
+  add.classList.add("hidden");
+  summary.classList.add("hidden");
+}
 
 function saveData(){
   if(!amount.value)return;
@@ -223,6 +223,11 @@ function showResult(){
     html+=`<div class="summary-item"><span>${k}</span><strong>${sum[k]}</strong></div>`;
   });
   result.innerHTML=html||"<p>データなし</p>";
+}
+
+/* PWA */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
 }
 </script>
 
