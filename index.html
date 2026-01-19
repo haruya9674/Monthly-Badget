@@ -4,8 +4,9 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=FINAL_5">
+<link rel="manifest" href="manifest.json?v=FINAL">
 <meta name="theme-color" content="#4CAF93">
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <style>
 body{
@@ -22,7 +23,6 @@ header{
   font-weight:600;
 }
 .container{ padding:20px; }
-
 select,input,button{
   width:100%;
   padding:14px;
@@ -35,7 +35,6 @@ input{ border:1px solid #ccc; background:#fff; }
 button{ background:#4CAF93;color:#fff;font-weight:bold; }
 button.back{ background:#ddd;color:#333; }
 button.delete{ background:#E57373;margin-top:8px; }
-
 .card{
   background:#fff;
   border-radius:16px;
@@ -43,7 +42,6 @@ button.delete{ background:#E57373;margin-top:8px; }
   margin-bottom:20px;
 }
 .hidden{ display:none; }
-
 .expense{
   padding:16px 0;
   border-bottom:1px solid #eee;
@@ -52,7 +50,6 @@ button.delete{ background:#E57373;margin-top:8px; }
 .expense:last-child{ border-bottom:none; }
 .category{ font-size:15px;color:#666; }
 .amount{ font-size:26px;font-weight:600;margin-top:4px; }
-
 .total{
   font-size:28px;
   font-weight:700;
@@ -69,7 +66,6 @@ button.delete{ background:#E57373;margin-top:8px; }
 </head>
 
 <body>
-
 <header id="title"></header>
 
 <div class="container">
@@ -105,6 +101,13 @@ button.delete{ background:#E57373;margin-top:8px; }
   <hr>
 
   <div id="list"></div>
+
+  <button id="btnExcel">Export Excel</button>
+  <button id="btnPDF">Export PDF</button>
+  <button id="btnExportFamily">家族共有用に書き出し</button>
+  <button id="btnImportFamily">家族共有データを読み込み</button>
+  <input type="file" id="familyFile" accept=".json" hidden>
+
   <button class="back" id="btnBack2"></button>
 </div>
 
@@ -177,23 +180,19 @@ btnSave.onclick = ()=>{
   back();
 };
 
-/* ===== 表示（完全修正版） ===== */
+/* ===== 表示 ===== */
 function render(){
   const data = load();
-
   const months = [...new Set(data.map(d=>d.month))].sort().reverse();
   month.innerHTML = months.map(m=>`<option value="${m}">${m}</option>`).join("");
   if(!month.value && months.length) month.value = months[0];
 
   const f = data.filter(d=>d.month===month.value);
-
   const sum = f.reduce((a,b)=>a+b.amount,0);
   monthTotal.textContent = `${sum} ${currency.value}`;
 
   const byCat = {};
-  f.forEach(d=>{
-    byCat[d.category] = (byCat[d.category] || 0) + d.amount;
-  });
+  f.forEach(d=>byCat[d.category]=(byCat[d.category]||0)+d.amount);
 
   categoryTotal.innerHTML = Object.keys(byCat).map(k=>`
     <div class="breakdown">
@@ -214,35 +213,80 @@ function render(){
   `).join("");
 }
 
-function toggle(id){
-  activeId = activeId===id ? null : id;
-  render();
-}
-
-function del(id){
-  saveAll(load().filter(d=>d.id!==id));
-  activeId=null;
-  render();
-}
-
+function toggle(id){ activeId = activeId===id ? null : id; render(); }
+function del(id){ saveAll(load().filter(d=>d.id!==id)); activeId=null; render(); }
 month.onchange = render;
 
+/* ===== Excel ===== */
+btnExcel.onclick = ()=>{
+  const data = load().filter(d=>d.month===month.value);
+  if(!data.length) return;
+  let csv = "Month,Category,Amount,Currency\n";
+  data.forEach(d=>{
+    csv += `${d.month},${CAT[d.category][langVal]},${d.amount},${currency.value}\n`;
+  });
+  const blob = new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`kakeibo_${month.value}.csv`;
+  a.click();
+};
+
+/* ===== PDF ===== */
+btnPDF.onclick = ()=>{
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF();
+  const data = load().filter(d=>d.month===month.value);
+  if(!data.length) return;
+
+  let y=20;
+  pdf.text(`${TEXT[langVal].title} ${month.value}`,10,y); y+=10;
+  const sum=data.reduce((a,b)=>a+b.amount,0);
+  pdf.text(`Total: ${sum} ${currency.value}`,10,y); y+=10;
+
+  data.forEach(d=>{
+    pdf.text(`${CAT[d.category][langVal]} - ${d.amount} ${currency.value}`,10,y);
+    y+=7;
+  });
+  pdf.save(`kakeibo_${month.value}.pdf`);
+};
+
+/* ===== 家族共有 ===== */
+btnExportFamily.onclick = ()=>{
+  const blob=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="kakeibo_family_share.json";
+  a.click();
+};
+
+btnImportFamily.onclick=()=>familyFile.click();
+familyFile.onchange=e=>{
+  const r=new FileReader();
+  r.onload=()=>{
+    const imported=JSON.parse(r.result);
+    const cur=load();
+    const ids=new Set(cur.map(d=>d.id));
+    imported.forEach(d=>{ if(!ids.has(d.id)) cur.push(d); });
+    saveAll(cur);
+    render();
+  };
+  r.readAsText(e.target.files[0]);
+};
+
 /* ===== 初期化 ===== */
-lang.innerHTML = `
-  <option value="ja">日本語</option>
-  <option value="en">English</option>
-  <option value="ko">한국어</option>
-`;
-lang.value = langVal;
-lang.onchange = ()=>{
-  langVal = lang.value;
+lang.innerHTML=`
+<option value="ja">日本語</option>
+<option value="en">English</option>
+<option value="ko">한국어</option>`;
+lang.value=langVal;
+lang.onchange=()=>{
+  langVal=lang.value;
   localStorage.setItem("lang",langVal);
-  applyLang();
-  render();
+  applyLang(); render();
 };
 
 applyLang();
 </script>
-
 </body>
 </html>
