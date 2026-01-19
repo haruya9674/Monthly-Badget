@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=FINAL_2">
+<link rel="manifest" href="manifest.json?v=FINAL_3">
 <meta name="theme-color" content="#4CAF93">
 
-<!-- VERSION: FINAL_UX_2026_01_20 -->
+<!-- VERSION: FINAL_DELETE_UX_2026_01_20 -->
 
 <style>
 body{
@@ -43,6 +43,10 @@ button.back{
   background:#ddd;
   color:#333;
 }
+button.delete{
+  background:#E57373;
+  margin-top:10px;
+}
 
 .card{
   background:#fff;
@@ -52,27 +56,21 @@ button.back{
 }
 .hidden{ display:none; }
 
-/* ===== 家計簿リスト ===== */
+/* ===== 支出カード ===== */
 .expense{
   padding:16px 0;
   border-bottom:1px solid #eee;
   text-align:center;
 }
 .expense:last-child{ border-bottom:none; }
-.expense .category{
+.category{
   font-size:18px;
   color:#666;
 }
-.expense .amount{
+.amount{
   font-size:28px;
   font-weight:600;
   margin-top:4px;
-}
-.hint{
-  font-size:12px;
-  color:#999;
-  text-align:center;
-  margin-top:10px;
 }
 </style>
 </head>
@@ -113,7 +111,6 @@ button.back{
 <div id="summary" class="card hidden">
   <select id="month"></select>
   <div id="list"></div>
-  <div class="hint">※ 長押しで削除</div>
   <button class="back" onclick="back()">戻る</button>
 </div>
 
@@ -166,31 +163,40 @@ function save(){
   saveAll(data);
 
   amount.value="";
-  back(); // 保存後は自然に戻る
+  back();
 }
 
-/* ==== 表示 ==== */
+/* ==== 表示 & 削除UX ==== */
+let activeId=null;
+
 function render(){
   const data=load();
   const months=[...new Set(data.map(d=>d.month))].sort().reverse();
   month.innerHTML=months.map(m=>`<option>${m}</option>`).join("");
 
-  const filtered=data.filter(d=>d.month===month.value);
-  list.innerHTML=filtered.map(d=>`
-    <div class="expense" oncontextmenu="remove(${d.id});return false;">
-      <div class="category">${d.category}</div>
-      <div class="amount">${d.amount} ${currency.value}</div>
-    </div>
-  `).join("");
+  list.innerHTML=data
+    .filter(d=>d.month===month.value)
+    .map(d=>`
+      <div class="expense" onclick="toggle(${d.id})">
+        <div class="category">${d.category}</div>
+        <div class="amount">${d.amount} ${currency.value}</div>
+        ${activeId===d.id ? `<button class="delete" onclick="del(${d.id});event.stopPropagation()">削除</button>` : ``}
+      </div>
+    `).join("");
 }
 
 month.onchange=render;
 
-/* ==== 長押し削除 ==== */
-function remove(id){
-  if(!confirm("この支出を削除しますか？")) return;
+function toggle(id){
+  activeId = activeId===id ? null : id;
+  render();
+}
+
+/* ==== 削除 ==== */
+function del(id){
   const data=load().filter(d=>d.id!==id);
   saveAll(data);
+  activeId=null;
   render();
 }
 </script>
