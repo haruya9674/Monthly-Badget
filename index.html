@@ -14,6 +14,7 @@
   --bg:#F5F7F6;
   --card:#ffffff;
   --text:#333;
+  --danger:#E57373;
 }
 body{
   margin:0;
@@ -47,6 +48,12 @@ button.secondary{
   background:#ccc;
   color:#333;
 }
+button.delete{
+  background:var(--danger);
+  font-size:16px;
+  padding:8px;
+  margin-top:6px;
+}
 .card{
   background:var(--card);
   border-radius:16px;
@@ -63,6 +70,10 @@ button.secondary{
   border-bottom:1px solid #eee;
 }
 .summary-item:last-child{ border:none; }
+.history-item{
+  border-bottom:1px dashed #ddd;
+  padding:10px 0;
+}
 .lang{ font-size:18px; margin-bottom:10px; }
 </style>
 </head>
@@ -112,7 +123,13 @@ button.secondary{
   <div class="card">
     <h2 id="summaryTitle"></h2>
     <select id="monthSelect" onchange="showResult()"></select>
+
+    <h3>合計</h3>
     <div id="result"></div>
+
+    <h3 style="margin-top:20px;">入力履歴</h3>
+    <div id="history"></div>
+
     <button class="secondary" onclick="backMenu()"></button>
   </div>
 </div>
@@ -129,6 +146,7 @@ const texts={
     summaryTitle:"月別・カテゴリ別",
     back:"Menuに戻る",
     save:"保存",
+    del:"削除",
     categories:["食費","家賃","光熱費","インターネット","携帯料金","学費","塾・補習校","買い物","ガソリン","外食費","旅行費","その他"]
   },
   en:{
@@ -139,6 +157,7 @@ const texts={
     summaryTitle:"Monthly Summary",
     back:"Back to Menu",
     save:"Save",
+    del:"Delete",
     categories:["Food","Rent","Utilities","Internet","Mobile","Education","Cram School","Shopping","Gas","Eating Out","Travel","Other"]
   },
   ko:{
@@ -149,12 +168,13 @@ const texts={
     summaryTitle:"월별 요약",
     back:"메뉴로",
     save:"저장",
+    del:"삭제",
     categories:["식비","월세","공과금","인터넷","휴대폰","학비","학원","쇼핑","주유","외식","여행","기타"]
   }
 };
 
 let lang="ja";
-let currency=localStorage.getItem("currency") || "MYR";
+let currency=localStorage.getItem("currency")||"MYR";
 let data=JSON.parse(localStorage.getItem("kakeibo")||"[]");
 
 currencySelect.value=currency;
@@ -190,10 +210,70 @@ render();
 function showAdd(){hideAll();add.classList.remove("hidden");}
 function showSummary(){hideAll();summary.classList.remove("hidden");updateMonths();showResult();}
 function backMenu(){hideAll();menu.classList.remove("hidden");}
-function hideAll(){menu.classList.add("hidden");add.classList.add("hidden");summary.classList.add("hidden");}
+function hideAll(){
+  menu.classList.add("hidden");
+  add.classList.add("hidden");
+  summary.classList.add("hidden");
+}
 
 function saveData(){
   if(!amount.value)return;
   data.push({
+    id:Date.now(),
     month:new Date().toISOString().slice(0,7),
-   
+    category:category.value,
+    amount:Number(amount.value)
+  });
+  localStorage.setItem("kakeibo",JSON.stringify(data));
+  amount.value="";
+  alert("Saved");
+}
+
+function updateMonths(){
+  const months=[...new Set(data.map(d=>d.month))].sort().reverse();
+  monthSelect.innerHTML="";
+  months.forEach(m=>{
+    const o=document.createElement("option");
+    o.value=o.text=m;
+    monthSelect.add(o);
+  });
+}
+
+function showResult(){
+  if(!monthSelect.value)return;
+  const t=texts[lang];
+  const month=monthSelect.value;
+  const filtered=data.filter(d=>d.month===month);
+
+  // 合計
+  const sum={};
+  filtered.forEach(d=>sum[d.category]=(sum[d.category]||0)+d.amount);
+  result.innerHTML=Object.keys(sum).map(k=>
+    `<div class="summary-item"><span>${k}</span><strong>${sum[k]} ${currency}</strong></div>`
+  ).join("")||"<p>データなし</p>";
+
+  // 履歴
+  history.innerHTML=filtered.map(d=>`
+    <div class="history-item">
+      ${d.category}：${d.amount} ${currency}
+      <button class="delete" onclick="deleteItem(${d.id})">${t.del}</button>
+    </div>
+  `).join("");
+}
+
+function deleteItem(id){
+  if(!confirm("削除しますか？"))return;
+  data=data.filter(d=>d.id!==id);
+  localStorage.setItem("kakeibo",JSON.stringify(data));
+  updateMonths();
+  showResult();
+}
+
+// PWA
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+</body>
+</html>
