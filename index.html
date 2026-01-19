@@ -1,205 +1,170 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Kakeibo</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=FINAL3">
-<meta name="theme-color" content="#4CAF93">
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Family Budget</title>
 
 <style>
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F4F6F5;}
-header{background:#4CAF93;color:#fff;padding:18px;font-size:22px;text-align:center;font-weight:600;}
-.container{padding:20px;}
-select,input,button{width:100%;padding:14px;font-size:16px;border-radius:12px;border:none;margin-top:12px;}
-input{border:1px solid #ccc;background:#fff;}
-button{background:#4CAF93;color:#fff;font-weight:bold;}
-button.back{background:#ddd;color:#333;}
-button.sub{background:#eee;color:#555;font-weight:500;font-size:14px;}
-button.delete{background:#E57373;margin-top:8px;}
-.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;}
-.hidden{display:none;}
-.expense{padding:16px 0;border-bottom:1px solid #eee;text-align:center;}
-.category{font-size:15px;color:#666;}
-.amount{font-size:26px;font-weight:600;margin-top:4px;}
-.total{font-size:28px;font-weight:700;text-align:center;margin:10px 0;}
-.breakdown{font-size:15px;display:flex;justify-content:space-between;margin:4px 0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f6fa;margin:0;padding:16px}
+h1{text-align:center}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:16px}
+select,input,button{width:100%;font-size:18px;padding:10px;margin-top:8px}
+button{background:#4a6cf7;color:#fff;border:none;border-radius:10px}
+.list{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee}
+.total{font-size:22px;font-weight:bold}
+.small{font-size:14px;color:#666}
+details button{margin-top:6px;background:#888}
 </style>
 </head>
 
 <body>
-<header id="title"></header>
 
-<div class="container">
+<h1 id="title"></h1>
 
 <div class="card">
   <select id="lang"></select>
-  <select id="currency">
-    <option value="MYR">MYR</option>
-    <option value="JPY">JPY</option>
-    <option value="KRW">KRW</option>
-    <option value="AUD">AUD</option>
-  </select>
+  <select id="currency"></select>
 </div>
 
-<div id="menu" class="card">
-  <button id="btnAdd"></button>
-  <button id="btnSummary"></button>
-</div>
-
-<div id="add" class="card hidden">
+<div class="card">
   <select id="category"></select>
-  <input id="otherName" class="hidden" placeholder="詳細（例：文房具）">
-  <input type="number" id="amount">
-  <button id="btnSave"></button>
-  <button class="back" id="btnBack1"></button>
+  <input id="customCategory" style="display:none">
+  <input id="amount" type="number" step="0.01">
+  <button id="saveBtn"></button>
 </div>
 
-<div id="summary" class="card hidden">
+<div class="card">
   <select id="month"></select>
-  <div id="monthTotal" class="total"></div>
-  <div id="categoryTotal"></div>
-  <hr>
-  <div id="list"></div>
-
-  <button class="sub" id="toggleExport"></button>
-  <div id="exportArea" class="hidden">
-    <button class="sub" id="btnExcel"></button>
-    <button class="sub" id="btnPDF"></button>
-    <button class="sub" id="btnExportFamily"></button>
-    <button class="sub" id="btnImportFamily"></button>
-    <input type="file" id="familyFile" accept=".json" hidden>
-  </div>
-
-  <button class="back" id="btnBack2"></button>
+  <div class="total" id="monthTotal"></div>
+  <div class="total small" id="transferTotal"></div>
 </div>
 
+<div class="card">
+  <div id="list"></div>
+</div>
+
+<div class="card">
+  <details>
+    <summary id="shareTitle"></summary>
+    <button onclick="exportJSON()">Export JSON</button>
+    <input type="file" id="importFile" accept=".json" style="display:none">
+    <button onclick="document.getElementById('importFile').click()">Import JSON</button>
+  </details>
 </div>
 
 <script>
 /* ===== 言語 ===== */
-const TEXT={
-  ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",amount:"金額",
-      export:"エクスポート / 共有",excel:"Excelで書き出し",pdf:"PDFで書き出し",
-      famExp:"家族共有用に書き出し",famImp:"家族共有データを読み込み",other:"その他（自由入力）"},
-  en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",amount:"Amount",
-      export:"Export / Share",excel:"Export Excel",pdf:"Export PDF",
-      famExp:"Export for Family",famImp:"Import Family Data",other:"Other (Custom)"},
-  ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",amount:"금액",
-      export:"내보내기 / 공유",excel:"엑셀로 내보내기",pdf:"PDF로 내보내기",
-      famExp:"가족 공유용 내보내기",famImp:"가족 데이터 불러오기",other:"기타 (직접 입력)"}
+const T={
+ ja:{title:"家計簿",save:"保存",share:"家族共有",total:"今月の支出",transfer:"Transfer合計",
+ categories:["Food","Utilities","Internet","Mobile","Education","Shopping","Gasoline","Eating Out","Travel","Rent","Transfer","Other"]},
+ en:{title:"Budget",save:"Save",share:"Family Share",total:"Monthly Total",transfer:"Transfer Total",
+ categories:["Food","Utilities","Internet","Mobile","Education","Shopping","Gasoline","Eating Out","Travel","Rent","Transfer","Other"]},
+ ko:{title:"가계부",save:"저장",share:"가족 공유",total:"월 지출",transfer:"이체 합계",
+ categories:["식비","공과금","인터넷","휴대폰","교육","쇼핑","주유비","외식","여행","월세","이체","기타"]}
 };
 
-const CAT={
-  food:{ja:"食費",en:"Food",ko:"식비"},
-  rent:{ja:"家賃",en:"Rent",ko:"월세"},
-  gas:{ja:"ガソリン代",en:"Gas",ko:"주유비"},
-  utilities:{ja:"光熱費",en:"Utilities",ko:"공과금"},
-  internet:{ja:"インターネット",en:"Internet",ko:"인터넷"},
-  phone:{ja:"携帯",en:"Mobile",ko:"휴대폰"},
-  school:{ja:"学費",en:"School",ko:"학비"},
-  shopping:{ja:"買い物",en:"Shopping",ko:"쇼핑"},
-  other:{ja:"その他",en:"Other",ko:"기타"}
-};
+/* ===== 通貨 ===== */
+const C={MYR:"MYR",JPY:"JPY",KRW:"KRW",AUD:"AUD"};
 
-let langVal=localStorage.getItem("lang")||"ja";
-let activeId=null;
+/* ===== Storage ===== */
+const KEY="BUDGET_DATA_V4";
+const load=()=>JSON.parse(localStorage.getItem(KEY)||"[]");
+const save=d=>localStorage.setItem(KEY,JSON.stringify(d));
 
-/* ===== 保存 ===== */
-const load=()=>JSON.parse(localStorage.getItem("kakeibo_data")||"[]");
-const saveAll=d=>localStorage.setItem("kakeibo_data",JSON.stringify(d));
+/* ===== Utils ===== */
+const uid=()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
 
-function applyLang(){
-  const t=TEXT[langVal];
-  title.textContent=t.title;
-  btnAdd.textContent=t.add;
-  btnSummary.textContent=t.summary;
-  btnSave.textContent=t.save;
-  btnBack1.textContent=btnBack2.textContent=t.back;
-  amount.placeholder=t.amount;
-  toggleExport.textContent=t.export;
-  btnExcel.textContent=t.excel;
-  btnPDF.textContent=t.pdf;
-  btnExportFamily.textContent=t.famExp;
-  btnImportFamily.textContent=t.famImp;
-  otherName.placeholder=t.other;
+/* ===== DOM ===== */
+const lang=document.getElementById("lang");
+const currency=document.getElementById("currency");
+const category=document.getElementById("category");
+const customCategory=document.getElementById("customCategory");
+const amount=document.getElementById("amount");
+const month=document.getElementById("month");
+const list=document.getElementById("list");
 
-  category.innerHTML="";
-  for(const k in CAT){
-    category.innerHTML+=`<option value="${k}">${CAT[k][langVal]}</option>`;
-  }
+/* ===== 初期 ===== */
+Object.keys(T).forEach(k=>lang.innerHTML+=`<option>${k}</option>`);
+Object.keys(C).forEach(k=>currency.innerHTML+=`<option>${k}</option>`);
+
+lang.onchange=renderUI;
+category.onchange=()=>customCategory.style.display=category.value==="Other"?"block":"none";
+
+/* ===== UI ===== */
+function renderUI(){
+ const t=T[lang.value];
+ title.textContent=t.title;
+ saveBtn.textContent=t.save;
+ shareTitle.textContent=t.share;
+ category.innerHTML=t.categories.map(c=>`<option>${c}</option>`).join("");
+ render();
 }
 
-/* ===== その他入力切替 ===== */
-category.onchange=()=>{
-  otherName.classList.toggle("hidden",category.value!=="other");
-};
-
-/* ===== 画面遷移 ===== */
-btnAdd.onclick=()=>{menu.classList.add("hidden");add.classList.remove("hidden");};
-btnSummary.onclick=()=>{menu.classList.add("hidden");summary.classList.remove("hidden");render();};
-btnBack1.onclick=btnBack2.onclick=()=>{add.classList.add("hidden");summary.classList.add("hidden");menu.classList.remove("hidden");};
-
 /* ===== 保存 ===== */
-btnSave.onclick=()=>{
-  const v=Number(amount.value);
-  if(!v)return;
-  const d=load();
-  d.push({
-    id:Date.now(),
-    month:new Date().toISOString().slice(0,7),
-    category:category.value,
-    sub:category.value==="other"?otherName.value.trim():"",
-    amount:v
-  });
-  saveAll(d);
-  amount.value="";otherName.value="";
-  menu.classList.remove("hidden");add.classList.add("hidden");
+saveBtn.onclick=()=>{
+ const data=load();
+ data.push({
+  id:uid(),
+  month:new Date().toISOString().slice(0,7),
+  category:category.value==="Other"?customCategory.value:category.value,
+  rawCategory:category.value,
+  amount:parseFloat(amount.value),
+  currency:currency.value
+ });
+ save(data);
+ amount.value="";
+ render();
 };
 
 /* ===== 表示 ===== */
 function render(){
-  const d=load();
-  const ms=[...new Set(d.map(x=>x.month))].sort().reverse();
-  month.innerHTML=ms.map(m=>`<option>${m}</option>`).join("");
-  if(!month.value&&ms.length)month.value=ms[0];
-  const f=d.filter(x=>x.month===month.value);
+ const data=load();
+ const months=[...new Set(data.map(d=>d.month))];
+ month.innerHTML=months.map(m=>`<option>${m}</option>`).join("");
 
-  monthTotal.textContent=`${f.reduce((a,b)=>a+b.amount,0)} ${currency.value}`;
+ const f=data.filter(d=>d.month===month.value);
+ let sum=0,transfer=0;
+ list.innerHTML="";
 
-  const bc={};
-  f.forEach(x=>bc[x.category]=(bc[x.category]||0)+x.amount);
+ f.forEach(d=>{
+  d.rawCategory==="Transfer"?transfer+=d.amount:sum+=d.amount;
+  const div=document.createElement("div");
+  div.className="list";
+  div.innerHTML=`<span>${d.category}</span><span>${d.amount.toFixed(2)} ${d.currency}</span>`;
+  div.onclick=()=>{if(confirm("Delete?")){save(load().filter(x=>x.id!==d.id));render();}};
+  list.appendChild(div);
+ });
 
-  categoryTotal.innerHTML=Object.keys(bc).map(k=>`
-    <div class="breakdown">
-      <span>${CAT[k][langVal]}</span>
-      <span>${bc[k]} ${currency.value}</span>
-    </div>`).join("");
-
-  list.innerHTML=f.map(x=>{
-    const label=x.category==="other" && x.sub
-      ? `${CAT.other[langVal]}（${x.sub}）`
-      : CAT[x.category][langVal];
-    return `
-    <div class="expense" onclick="toggle(${x.id})">
-      <div class="category">${label}</div>
-      <div class="amount">${x.amount} ${currency.value}</div>
-      ${activeId===x.id?`<button class="delete" onclick="del(${x.id});event.stopPropagation()">削除</button>`:""}
-    </div>`;
-  }).join("");
+ monthTotal.textContent=`${T[lang.value].total}: ${sum.toFixed(2)} ${currency.value}`;
+ transferTotal.textContent=`${T[lang.value].transfer}: ${transfer.toFixed(2)} ${currency.value}`;
 }
 
-function toggle(id){activeId=activeId===id?null:id;render();}
-function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();}
-month.onchange=render;
+/* ===== Export / Import ===== */
+function exportJSON(){
+ const blob=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="budget.json";
+ a.click();
+}
 
-/* ===== 初期化 ===== */
-lang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
-lang.value=langVal;
-lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();};
+document.getElementById("importFile").onchange=e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+  const imported=JSON.parse(reader.result);
+  const current=load();
+  const map=new Map(current.map(d=>[d.id,d]));
+  imported.forEach(d=>{if(!map.has(d.id))current.push(d)});
+  save(current);
+  render();
+ };
+ reader.readAsText(file);
+};
 
-applyLang();
+renderUI();
 </script>
 </body>
 </html>
