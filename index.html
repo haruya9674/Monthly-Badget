@@ -2,12 +2,12 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>家計簿</title>
+<title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=5">
+<link rel="manifest" href="manifest.json?v=6">
 <meta name="theme-color" content="#4CAF93">
 
-<!-- version 2026-01-20-delete-fix -->
+<!-- version 2026-01-20-FINAL-CHECK -->
 
 <style>
 :root{
@@ -38,9 +38,13 @@ select,input,button{
   border-radius:12px;
   border:none;
 }
+input{
+  background:#FAFAFA;
+  border:1px solid #ccc;
+}
 button{ background:var(--main); color:#fff; font-weight:bold; }
 button.secondary{ background:#ccc; color:#333; }
-button.delete{ background:var(--danger); font-size:16px; margin-left:10px; }
+button.delete{ background:var(--danger); font-size:16px; }
 .card{
   background:var(--card);
   border-radius:16px;
@@ -55,11 +59,11 @@ button.delete{ background:var(--danger); font-size:16px; margin-left:10px; }
   font-size:20px;
 }
 .history-item{
-  border-bottom:1px dashed #ccc;
-  padding:10px 0;
   display:flex;
   justify-content:space-between;
   align-items:center;
+  padding:10px 0;
+  border-bottom:1px dashed #ccc;
 }
 </style>
 </head>
@@ -117,11 +121,41 @@ button.delete{ background:var(--danger); font-size:16px; margin-left:10px; }
 </div>
 
 <script>
-/* ===== 言語・カテゴリ ===== */
+/* ===== 言語 ===== */
 const text={
-  ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",addTitle:"支出入力",save:"保存",back:"戻る",summaryTitle:"月別集計",history:"履歴（削除可）"},
-  en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",addTitle:"Add Expense",save:"Save",back:"Back",summaryTitle:"Monthly Summary",history:"History"},
-  ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",addTitle:"지출 입력",save:"저장",back:"뒤로",summaryTitle:"월별 집계",history:"기록"}
+  ja:{
+    title:"家計簿",
+    add:"支出を入力",
+    summary:"集計を見る",
+    addTitle:"支出入力",
+    save:"保存",
+    back:"戻る",
+    summaryTitle:"月別集計",
+    history:"履歴（削除可）",
+    amount:"金額を入力"
+  },
+  en:{
+    title:"Expense Tracker",
+    add:"Add Expense",
+    summary:"View Summary",
+    addTitle:"Add Expense",
+    save:"Save",
+    back:"Back",
+    summaryTitle:"Monthly Summary",
+    history:"History",
+    amount:"Enter amount"
+  },
+  ko:{
+    title:"가계부",
+    add:"지출 입력",
+    summary:"집계 보기",
+    addTitle:"지출 입력",
+    save:"저장",
+    back:"뒤로",
+    summaryTitle:"월별 집계",
+    history:"기록",
+    amount:"금액 입력"
+  }
 };
 
 const categories={
@@ -144,21 +178,23 @@ let lang=localStorage.getItem("lang")||"ja";
 let currency=localStorage.getItem("currency")||"MYR";
 let data=JSON.parse(localStorage.getItem("kakeibo")||"[]");
 
-/* ===== 初期設定 ===== */
+/* ===== 初期 ===== */
 langSelect.value=lang;
 currencySelect.value=currency;
 
-/* ===== 言語反映 ===== */
+/* ===== 言語反映（完全） ===== */
 function applyLang(){
-  appTitle.textContent=text[lang].title;
-  btnAdd.textContent=text[lang].add;
-  btnSummary.textContent=text[lang].summary;
-  addTitle.textContent=text[lang].addTitle;
-  btnSave.textContent=text[lang].save;
-  btnBack1.textContent=text[lang].back;
-  summaryTitle.textContent=text[lang].summaryTitle;
-  historyTitle.textContent=text[lang].history;
-  btnBack2.textContent=text[lang].back;
+  const t=text[lang];
+  appTitle.textContent=t.title;
+  btnAdd.textContent=t.add;
+  btnSummary.textContent=t.summary;
+  addTitle.textContent=t.addTitle;
+  btnSave.textContent=t.save;
+  btnBack1.textContent=t.back;
+  summaryTitle.textContent=t.summaryTitle;
+  historyTitle.textContent=t.history;
+  btnBack2.textContent=t.back;
+  amount.placeholder=t.amount+" ("+currency+")";
 
   category.innerHTML="";
   for(const k in categories){
@@ -168,26 +204,27 @@ function applyLang(){
     category.appendChild(o);
   }
 }
-applyLang();
 
 /* ===== 画面制御 ===== */
-btnAdd.onclick=()=>{show(add)};
+btnAdd.onclick=()=>show(add);
 btnSummary.onclick=()=>{show(summary);updateMonths();render()};
 btnBack1.onclick=btnBack2.onclick=()=>show(menu);
 
 function show(target){
   [menu,add,summary].forEach(d=>d.classList.add("hidden"));
   target.classList.remove("hidden");
+  applyLang();
 }
 
-/* ===== 保存 ===== */
+/* ===== 保存（確実） ===== */
 btnSave.onclick=()=>{
-  if(!amount.value) return;
+  const val=Number(amount.value);
+  if(!val) return alert("金額を入力してください");
   data.push({
     id:Date.now(),
     month:new Date().toISOString().slice(0,7),
     category:category.value,
-    amount:Number(amount.value)
+    amount:val
   });
   localStorage.setItem("kakeibo",JSON.stringify(data));
   amount.value="";
@@ -224,22 +261,23 @@ function render(){
   `).join("");
 }
 
-/* ===== 削除（確実に動く方式） ===== */
-history.addEventListener("click",e=>{
+/* ===== 削除 ===== */
+history.onclick=e=>{
   if(!e.target.classList.contains("delete")) return;
   const id=Number(e.target.closest(".history-item").dataset.id);
   data=data.filter(d=>d.id!==id);
   localStorage.setItem("kakeibo",JSON.stringify(data));
-  updateMonths();
-  render();
-});
+  updateMonths(); render();
+};
 
 /* ===== 設定 ===== */
 langSelect.onchange=()=>{lang=langSelect.value;localStorage.setItem("lang",lang);applyLang();render();};
-currencySelect.onchange=()=>{currency=currencySelect.value;localStorage.setItem("currency",currency);render();};
+currencySelect.onchange=()=>{currency=currencySelect.value;localStorage.setItem("currency",currency);applyLang();render();};
+
+applyLang();
 
 if("serviceWorker"in navigator){
-  navigator.serviceWorker.register("service-worker.js?v=5");
+  navigator.serviceWorker.register("service-worker.js?v=6");
 }
 </script>
 
