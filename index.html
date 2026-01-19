@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=FINAL3">
+<link rel="manifest" href="manifest.json?v=FINAL4">
 <meta name="theme-color" content="#4CAF93">
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
@@ -17,12 +17,26 @@ input{border:1px solid #ccc;background:#fff;}
 button{background:#4CAF93;color:#fff;font-weight:bold;}
 button.back{background:#ddd;color:#333;}
 button.sub{background:#eee;color:#555;font-weight:500;font-size:14px;}
-button.delete{background:#E57373;margin-top:8px;}
+button.export{background:#fff;color:#4CAF93;border:2px dashed #4CAF93;}
+button.delete{background:#E57373;margin-top:6px;font-size:12px;padding:8px;}
 .card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;}
 .hidden{display:none;}
-.expense{padding:16px 0;border-bottom:1px solid #eee;text-align:center;}
-.category{font-size:15px;color:#666;}
-.amount{font-size:26px;font-weight:600;margin-top:4px;}
+
+.expense{
+ padding:8px 0;
+ border-bottom:1px solid #eee;
+ font-size:13px;
+}
+.expense .amount{
+ font-size:18px;
+ font-weight:600;
+}
+.expense .date{
+ font-size:11px;
+ color:#999;
+ margin-top:2px;
+}
+
 .total{font-size:28px;font-weight:700;text-align:center;margin:10px 0;}
 .breakdown{font-size:15px;display:flex;justify-content:space-between;margin:4px 0;}
 </style>
@@ -43,35 +57,41 @@ button.delete{background:#E57373;margin-top:8px;}
   </select>
 </div>
 
+<!-- MENU -->
 <div id="menu" class="card">
+  <div id="menuTotal" class="total"></div>
   <button id="btnAdd"></button>
   <button id="btnSummary"></button>
 </div>
 
+<!-- ADD -->
 <div id="add" class="card hidden">
   <select id="category"></select>
-  <input id="otherName" class="hidden" placeholder="">
+  <input id="otherName" class="hidden">
   <input type="number" id="amount" step="0.01">
   <button id="btnSave"></button>
   <button class="back" id="btnBack1"></button>
 </div>
 
+<!-- SUMMARY -->
 <div id="summary" class="card hidden">
   <select id="month"></select>
   <div id="monthTotal" class="total"></div>
   <div id="transferTotal" class="total" style="font-size:18px;color:#777;"></div>
+
   <div id="categoryTotal"></div>
-  <hr>
+
+  <button class="back" id="btnBack2"></button>
+
+  <h3 style="margin-top:20px;">Transaction</h3>
   <div id="list"></div>
 
-  <button class="sub" id="toggleExport"></button>
+  <button class="export" id="toggleExport"></button>
   <div id="exportArea" class="hidden">
     <button class="sub" id="btnExportFamily"></button>
     <button class="sub" id="btnImportFamily"></button>
     <input type="file" id="familyFile" accept=".json" hidden>
   </div>
-
-  <button class="back" id="btnBack2"></button>
 </div>
 
 </div>
@@ -81,9 +101,9 @@ const TEXT={
  ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",
      export:"エクスポート / 共有",famExp:"家族共有用に書き出し",famImp:"家族データを読み込み",other:"詳細（例：文房具）"},
  en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",
-     export:"Export / Share",famExp:"Export for Family",famImp:"Import Family Data",other:"Detail (e.g. Stationery)"},
+     export:"Export / Share",famExp:"Export for Family",famImp:"Import Family Data",other:"Detail"},
  ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",
-     export:"내보내기 / 공유",famExp:"가족 공유용 내보내기",famImp:"가족 데이터 불러오기",other:"상세 (예: 문구)"}
+     export:"내보내기 / 공유",famExp:"가족 공유용 내보내기",famImp:"가족 데이터 불러오기",other:"상세"}
 };
 
 const CAT={
@@ -129,19 +149,37 @@ category.onchange=()=>otherName.classList.toggle("hidden",category.value!=="othe
 
 btnAdd.onclick=()=>{menu.classList.add("hidden");add.classList.remove("hidden");};
 btnSummary.onclick=()=>{menu.classList.add("hidden");summary.classList.remove("hidden");render();};
-btnBack1.onclick=btnBack2.onclick=()=>{add.classList.add("hidden");summary.classList.add("hidden");menu.classList.remove("hidden");};
+btnBack1.onclick=btnBack2.onclick=()=>{add.classList.add("hidden");summary.classList.add("hidden");menu.classList.remove("hidden");updateMenuTotal();};
 
 btnSave.onclick=()=>{
  const v=Number(amount.value);
  if(!v)return;
+ const now=new Date();
  const d=load();
- d.push({id:uid(),month:new Date().toISOString().slice(0,7),category:category.value,sub:otherName.value,amount:v});
+ d.push({
+   id:uid(),
+   month:now.toISOString().slice(0,7),
+   date:now.toISOString().slice(0,10),
+   category:category.value,
+   sub:otherName.value,
+   amount:v
+ });
  saveAll(d);
  amount.value="";otherName.value="";
  menu.classList.remove("hidden");add.classList.add("hidden");
+ updateMenuTotal();
 };
 
 toggleExport.onclick=()=>exportArea.classList.toggle("hidden");
+
+function updateMenuTotal(){
+ const d=load();
+ if(!d.length){menuTotal.textContent="";return;}
+ const m=[...new Set(d.map(x=>x.month))].sort().reverse()[0];
+ const sum=d.filter(x=>x.month===m&&x.category!=="transfer")
+            .reduce((a,b)=>a+b.amount,0);
+ menuTotal.textContent=`${m} : ${sum.toFixed(2)} ${currency.value}`;
+}
 
 function render(){
  const d=load();
@@ -169,16 +207,18 @@ function render(){
 
  list.innerHTML=f.map(x=>{
    const label=x.category==="other"&&x.sub?`${CAT.other[langVal]}（${x.sub}）`:CAT[x.category][langVal];
+   const date=x.date||`${x.month}-01`;
    return `<div class="expense" onclick="toggle('${x.id}')">
-     <div class="category">${label}</div>
+     <div>${label}</div>
      <div class="amount">${x.amount.toFixed(2)} ${currency.value}</div>
+     <div class="date">${date}</div>
      ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`:""}
    </div>`;
  }).join("");
 }
 
 function toggle(id){activeId=activeId===id?null:id;render();}
-function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();}
+function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();updateMenuTotal();}
 month.onchange=render;
 
 btnExportFamily.onclick=()=>{
@@ -197,16 +237,17 @@ familyFile.onchange=e=>{
    const cur=load();
    const map=new Map(cur.map(x=>[x.id,x]));
    imported.forEach(x=>{if(!map.has(x.id))cur.push(x);});
-   saveAll(cur);render();
+   saveAll(cur);render();updateMenuTotal();
  };
  r.readAsText(e.target.files[0]);
 };
 
 lang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
 lang.value=langVal;
-lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();};
+lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();updateMenuTotal();};
 
 applyLang();
+updateMenuTotal();
 </script>
 </body>
 </html>
