@@ -1,19 +1,14 @@
-const CACHE_NAME = "kakeibo-v3";
+/* VERSION: FINAL_SW_2026_01_20 */
 
 self.addEventListener("install", e => {
   self.skipWaiting();
 });
 
 self.addEventListener("activate", e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
-    )
-  );
+  self.clients.claim();
 });
 
 self.addEventListener("fetch", e => {
-  e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
-  );
+  // 常にネットワーク優先（保存破壊防止）
+  e.respondWith(fetch(e.request));
 });
