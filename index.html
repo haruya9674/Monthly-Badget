@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=6">
+<link rel="manifest" href="manifest.json?v=7">
 <meta name="theme-color" content="#4CAF93">
 
-<!-- version 2026-01-20-FINAL-CHECK -->
+<!-- version 2026-01-20-SAVE-FINAL -->
 
 <style>
 :root{
@@ -123,39 +123,9 @@ button.delete{ background:var(--danger); font-size:16px; }
 <script>
 /* ===== 言語 ===== */
 const text={
-  ja:{
-    title:"家計簿",
-    add:"支出を入力",
-    summary:"集計を見る",
-    addTitle:"支出入力",
-    save:"保存",
-    back:"戻る",
-    summaryTitle:"月別集計",
-    history:"履歴（削除可）",
-    amount:"金額を入力"
-  },
-  en:{
-    title:"Expense Tracker",
-    add:"Add Expense",
-    summary:"View Summary",
-    addTitle:"Add Expense",
-    save:"Save",
-    back:"Back",
-    summaryTitle:"Monthly Summary",
-    history:"History",
-    amount:"Enter amount"
-  },
-  ko:{
-    title:"가계부",
-    add:"지출 입력",
-    summary:"집계 보기",
-    addTitle:"지출 입력",
-    save:"저장",
-    back:"뒤로",
-    summaryTitle:"월별 집계",
-    history:"기록",
-    amount:"금액 입력"
-  }
+  ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",addTitle:"支出入力",save:"保存",back:"戻る",summaryTitle:"月別集計",history:"履歴（削除可）",amount:"金額"},
+  en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",addTitle:"Add Expense",save:"Save",back:"Back",summaryTitle:"Monthly Summary",history:"History",amount:"Amount"},
+  ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",addTitle:"지출 입력",save:"저장",back:"뒤로",summaryTitle:"월별 집계",history:"기록",amount:"금액"}
 };
 
 const categories={
@@ -173,16 +143,14 @@ const categories={
   other:{ja:"その他",en:"Other",ko:"기타"}
 };
 
-/* ===== 状態 ===== */
 let lang=localStorage.getItem("lang")||"ja";
 let currency=localStorage.getItem("currency")||"MYR";
 let data=JSON.parse(localStorage.getItem("kakeibo")||"[]");
 
-/* ===== 初期 ===== */
 langSelect.value=lang;
 currencySelect.value=currency;
 
-/* ===== 言語反映（完全） ===== */
+/* ===== 言語反映 ===== */
 function applyLang(){
   const t=text[lang];
   appTitle.textContent=t.title;
@@ -205,33 +173,49 @@ function applyLang(){
   }
 }
 
-/* ===== 画面制御 ===== */
-btnAdd.onclick=()=>show(add);
-btnSummary.onclick=()=>{show(summary);updateMonths();render()};
-btnBack1.onclick=btnBack2.onclick=()=>show(menu);
-
+/* ===== 画面 ===== */
 function show(target){
   [menu,add,summary].forEach(d=>d.classList.add("hidden"));
   target.classList.remove("hidden");
   applyLang();
 }
 
-/* ===== 保存（確実） ===== */
+btnAdd.onclick=()=>show(add);
+btnSummary.onclick=()=>{show(summary);refreshMonths();render();};
+btnBack1.onclick=btnBack2.onclick=()=>show(menu);
+
+/* ===== 保存（完全確認版） ===== */
 btnSave.onclick=()=>{
   const val=Number(amount.value);
-  if(!val) return alert("金額を入力してください");
-  data.push({
+  if(!val){
+    alert("金額が未入力です");
+    return;
+  }
+
+  const month=new Date().toISOString().slice(0,7);
+
+  const item={
     id:Date.now(),
-    month:new Date().toISOString().slice(0,7),
+    month,
     category:category.value,
     amount:val
-  });
+  };
+
+  data.push(item);
   localStorage.setItem("kakeibo",JSON.stringify(data));
+
+  console.log("SAVED:", item); // ← 確認用
+
   amount.value="";
+  alert("保存しました");
+
+  // 🔑 保存直後に月を確実に表示
+  refreshMonths();
+  monthSelect.value=month;
 };
 
 /* ===== 月 ===== */
-function updateMonths(){
+function refreshMonths(){
   monthSelect.innerHTML="";
   [...new Set(data.map(d=>d.month))].sort().reverse().forEach(m=>{
     const o=document.createElement("option");
@@ -239,11 +223,13 @@ function updateMonths(){
     monthSelect.appendChild(o);
   });
 }
+
 monthSelect.onchange=render;
 
 /* ===== 表示 ===== */
 function render(){
   if(!monthSelect.value) return;
+
   const f=data.filter(d=>d.month===monthSelect.value);
   const sum={};
 
@@ -267,7 +253,8 @@ history.onclick=e=>{
   const id=Number(e.target.closest(".history-item").dataset.id);
   data=data.filter(d=>d.id!==id);
   localStorage.setItem("kakeibo",JSON.stringify(data));
-  updateMonths(); render();
+  refreshMonths();
+  render();
 };
 
 /* ===== 設定 ===== */
@@ -275,10 +262,6 @@ langSelect.onchange=()=>{lang=langSelect.value;localStorage.setItem("lang",lang)
 currencySelect.onchange=()=>{currency=currencySelect.value;localStorage.setItem("currency",currency);applyLang();render();};
 
 applyLang();
-
-if("serviceWorker"in navigator){
-  navigator.serviceWorker.register("service-worker.js?v=6");
-}
 </script>
 
 </body>
