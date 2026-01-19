@@ -4,10 +4,8 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=FINAL_3">
+<link rel="manifest" href="manifest.json?v=FINAL_5">
 <meta name="theme-color" content="#4CAF93">
-
-<!-- VERSION: FINAL_DELETE_UX_2026_01_20 -->
 
 <style>
 body{
@@ -19,7 +17,7 @@ header{
   background:#4CAF93;
   color:#fff;
   padding:18px;
-  font-size:24px;
+  font-size:22px;
   text-align:center;
   font-weight:600;
 }
@@ -28,25 +26,15 @@ header{
 select,input,button{
   width:100%;
   padding:14px;
-  font-size:18px;
+  font-size:16px;
   border-radius:12px;
   border:none;
   margin-top:12px;
 }
 input{ border:1px solid #ccc; background:#fff; }
-button{
-  background:#4CAF93;
-  color:#fff;
-  font-weight:bold;
-}
-button.back{
-  background:#ddd;
-  color:#333;
-}
-button.delete{
-  background:#E57373;
-  margin-top:10px;
-}
+button{ background:#4CAF93;color:#fff;font-weight:bold; }
+button.back{ background:#ddd;color:#333; }
+button.delete{ background:#E57373;margin-top:8px; }
 
 .card{
   background:#fff;
@@ -56,104 +44,128 @@ button.delete{
 }
 .hidden{ display:none; }
 
-/* ===== 支出カード ===== */
 .expense{
   padding:16px 0;
   border-bottom:1px solid #eee;
   text-align:center;
 }
 .expense:last-child{ border-bottom:none; }
-.category{
-  font-size:18px;
-  color:#666;
-}
-.amount{
+.category{ font-size:15px;color:#666; }
+.amount{ font-size:26px;font-weight:600;margin-top:4px; }
+
+.total{
   font-size:28px;
-  font-weight:600;
-  margin-top:4px;
+  font-weight:700;
+  text-align:center;
+  margin:10px 0;
+}
+.breakdown{
+  font-size:15px;
+  display:flex;
+  justify-content:space-between;
+  margin:4px 0;
 }
 </style>
 </head>
 
 <body>
 
-<header>家計簿</header>
+<header id="title"></header>
 
 <div class="container">
 
-<div id="menu" class="card">
+<div class="card">
+  <select id="lang"></select>
   <select id="currency">
     <option value="MYR">MYR</option>
     <option value="JPY">JPY</option>
     <option value="KRW">KRW</option>
     <option value="AUD">AUD</option>
   </select>
-  <button onclick="openAdd()">支出を入力</button>
-  <button onclick="openSummary()">集計を見る</button>
+</div>
+
+<div id="menu" class="card">
+  <button id="btnAdd"></button>
+  <button id="btnSummary"></button>
 </div>
 
 <div id="add" class="card hidden">
-  <select id="category">
-    <option value="food">食費</option>
-    <option value="rent">家賃</option>
-    <option value="utilities">光熱費</option>
-    <option value="internet">インターネット</option>
-    <option value="phone">携帯</option>
-    <option value="school">学費</option>
-    <option value="shopping">買い物</option>
-    <option value="other">その他</option>
-  </select>
-  <input type="number" id="amount" placeholder="金額">
-  <button onclick="save()">保存</button>
-  <button class="back" onclick="back()">戻る</button>
+  <select id="category"></select>
+  <input type="number" id="amount">
+  <button id="btnSave"></button>
+  <button class="back" id="btnBack1"></button>
 </div>
 
 <div id="summary" class="card hidden">
   <select id="month"></select>
+
+  <div id="monthTotal" class="total"></div>
+  <div id="categoryTotal"></div>
+
+  <hr>
+
   <div id="list"></div>
-  <button class="back" onclick="back()">戻る</button>
+  <button class="back" id="btnBack2"></button>
 </div>
 
 </div>
 
 <script>
-/* ==== Service Worker 強制最新 ==== */
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.getRegistrations().then(rs=>{
-    rs.forEach(r=>r.unregister());
-  });
+/* ===== 言語 ===== */
+const TEXT={
+  ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",amount:"金額"},
+  en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",amount:"Amount"},
+  ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",amount:"금액"}
+};
+
+const CAT={
+  food:{ja:"食費",en:"Food",ko:"식비"},
+  rent:{ja:"家賃",en:"Rent",ko:"월세"},
+  utilities:{ja:"光熱費",en:"Utilities",ko:"공과금"},
+  internet:{ja:"インターネット",en:"Internet",ko:"인터넷"},
+  phone:{ja:"携帯",en:"Mobile",ko:"휴대폰"},
+  school:{ja:"学費",en:"School",ko:"학비"},
+  shopping:{ja:"買い物",en:"Shopping",ko:"쇼핑"},
+  other:{ja:"その他",en:"Other",ko:"기타"}
+};
+
+let langVal = localStorage.getItem("lang") || "ja";
+let activeId = null;
+
+/* ===== 保存 ===== */
+const load = () => JSON.parse(localStorage.getItem("kakeibo_data") || "[]");
+const saveAll = d => localStorage.setItem("kakeibo_data", JSON.stringify(d));
+
+/* ===== 言語反映 ===== */
+function applyLang(){
+  const t = TEXT[langVal];
+  title.textContent = t.title;
+  btnAdd.textContent = t.add;
+  btnSummary.textContent = t.summary;
+  btnSave.textContent = t.save;
+  btnBack1.textContent = btnBack2.textContent = t.back;
+  amount.placeholder = t.amount;
+
+  category.innerHTML = "";
+  for(const k in CAT){
+    category.innerHTML += `<option value="${k}">${CAT[k][langVal]}</option>`;
+  }
 }
 
-/* ==== Storage ==== */
-function load(){
-  return JSON.parse(localStorage.getItem("kakeibo_data")||"[]");
-}
-function saveAll(d){
-  localStorage.setItem("kakeibo_data",JSON.stringify(d));
-}
+/* ===== 画面遷移 ===== */
+function openAdd(){ menu.classList.add("hidden"); add.classList.remove("hidden"); }
+function openSummary(){ menu.classList.add("hidden"); summary.classList.remove("hidden"); render(); }
+function back(){ add.classList.add("hidden"); summary.classList.add("hidden"); menu.classList.remove("hidden"); }
 
-/* ==== 画面 ==== */
-function openAdd(){
-  menu.classList.add("hidden");
-  add.classList.remove("hidden");
-}
-function openSummary(){
-  menu.classList.add("hidden");
-  summary.classList.remove("hidden");
-  render();
-}
-function back(){
-  add.classList.add("hidden");
-  summary.classList.add("hidden");
-  menu.classList.remove("hidden");
-}
+btnAdd.onclick = openAdd;
+btnSummary.onclick = openSummary;
+btnBack1.onclick = btnBack2.onclick = back;
 
-/* ==== 保存 ==== */
-function save(){
-  const v=Number(amount.value);
+/* ===== 保存 ===== */
+btnSave.onclick = ()=>{
+  const v = Number(amount.value);
   if(!v) return;
-
-  const data=load();
+  const data = load();
   data.push({
     id:Date.now(),
     month:new Date().toISOString().slice(0,7),
@@ -161,44 +173,75 @@ function save(){
     amount:v
   });
   saveAll(data);
-
   amount.value="";
   back();
-}
+};
 
-/* ==== 表示 & 削除UX ==== */
-let activeId=null;
-
+/* ===== 表示（完全修正版） ===== */
 function render(){
-  const data=load();
-  const months=[...new Set(data.map(d=>d.month))].sort().reverse();
-  month.innerHTML=months.map(m=>`<option>${m}</option>`).join("");
+  const data = load();
 
-  list.innerHTML=data
-    .filter(d=>d.month===month.value)
-    .map(d=>`
-      <div class="expense" onclick="toggle(${d.id})">
-        <div class="category">${d.category}</div>
-        <div class="amount">${d.amount} ${currency.value}</div>
-        ${activeId===d.id ? `<button class="delete" onclick="del(${d.id});event.stopPropagation()">削除</button>` : ``}
-      </div>
-    `).join("");
+  const months = [...new Set(data.map(d=>d.month))].sort().reverse();
+  month.innerHTML = months.map(m=>`<option value="${m}">${m}</option>`).join("");
+  if(!month.value && months.length) month.value = months[0];
+
+  const f = data.filter(d=>d.month===month.value);
+
+  const sum = f.reduce((a,b)=>a+b.amount,0);
+  monthTotal.textContent = `${sum} ${currency.value}`;
+
+  const byCat = {};
+  f.forEach(d=>{
+    byCat[d.category] = (byCat[d.category] || 0) + d.amount;
+  });
+
+  categoryTotal.innerHTML = Object.keys(byCat).map(k=>`
+    <div class="breakdown">
+      <span>${CAT[k][langVal]}</span>
+      <span>${byCat[k]} ${currency.value}</span>
+    </div>
+  `).join("");
+
+  list.innerHTML = f.map(d=>`
+    <div class="expense" onclick="toggle(${d.id})">
+      <div class="category">${CAT[d.category][langVal]}</div>
+      <div class="amount">${d.amount} ${currency.value}</div>
+      ${activeId===d.id
+        ? `<button class="delete" onclick="del(${d.id});event.stopPropagation()">削除</button>`
+        : ""
+      }
+    </div>
+  `).join("");
 }
-
-month.onchange=render;
 
 function toggle(id){
   activeId = activeId===id ? null : id;
   render();
 }
 
-/* ==== 削除 ==== */
 function del(id){
-  const data=load().filter(d=>d.id!==id);
-  saveAll(data);
+  saveAll(load().filter(d=>d.id!==id));
   activeId=null;
   render();
 }
+
+month.onchange = render;
+
+/* ===== 初期化 ===== */
+lang.innerHTML = `
+  <option value="ja">日本語</option>
+  <option value="en">English</option>
+  <option value="ko">한국어</option>
+`;
+lang.value = langVal;
+lang.onchange = ()=>{
+  langVal = lang.value;
+  localStorage.setItem("lang",langVal);
+  applyLang();
+  render();
+};
+
+applyLang();
 </script>
 
 </body>
