@@ -1,17 +1,19 @@
+const CACHE_NAME = "kakeibo-v3";
+
 self.addEventListener("install", e => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", e => {
   e.waitUntil(
-    caches.open("kakeibo-v1").then(cache =>
-      cache.addAll([
-        "./",
-        "./index.html",
-        "./manifest.json"
-      ])
+    caches.keys().then(keys =>
+      Promise.all(keys.map(k => k !== CACHE_NAME && caches.delete(k)))
     )
   );
 });
 
 self.addEventListener("fetch", e => {
   e.respondWith(
-    caches.match(e.request).then(res => res || fetch(e.request))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });
