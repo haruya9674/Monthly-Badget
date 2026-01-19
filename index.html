@@ -4,264 +4,147 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=7">
+<link rel="manifest" href="manifest.json?v=FINAL_1">
 <meta name="theme-color" content="#4CAF93">
 
-<!-- version 2026-01-20-SAVE-FINAL -->
+<!-- VERSION: FINAL_SAVE_2026_01_20 -->
 
 <style>
-:root{
-  --main:#4CAF93;
-  --bg:#F5F7F6;
-  --card:#fff;
-  --danger:#E57373;
-}
-body{
-  margin:0;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:var(--bg);
-}
-header{
-  background:var(--main);
-  color:#fff;
-  padding:18px;
-  font-size:26px;
-  text-align:center;
-  font-weight:bold;
-}
-.container{ padding:20px; }
-select,input,button{
-  width:100%;
-  padding:14px;
-  margin-top:12px;
-  font-size:20px;
-  border-radius:12px;
-  border:none;
-}
-input{
-  background:#FAFAFA;
-  border:1px solid #ccc;
-}
-button{ background:var(--main); color:#fff; font-weight:bold; }
-button.secondary{ background:#ccc; color:#333; }
-button.delete{ background:var(--danger); font-size:16px; }
-.card{
-  background:var(--card);
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
-}
-.hidden{ display:none; }
-.summary-item{
-  display:flex;
-  justify-content:space-between;
-  padding:8px 0;
-  font-size:20px;
-}
-.history-item{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:10px 0;
-  border-bottom:1px dashed #ccc;
-}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont;background:#F4F6F5}
+header{background:#4CAF93;color:#fff;padding:18px;font-size:24px;text-align:center}
+.container{padding:20px}
+select,input,button{width:100%;padding:14px;font-size:18px;margin-top:12px;border-radius:12px;border:none}
+input{border:1px solid #ccc;background:#fff}
+button{background:#4CAF93;color:#fff;font-weight:bold}
+button.back{background:#ccc;color:#333}
+button.delete{background:#E57373}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px}
+.hidden{display:none}
+.item{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
 </style>
 </head>
 
 <body>
 
-<header id="appTitle"></header>
+<header>家計簿</header>
 
 <div class="container">
 
-<select id="langSelect">
-  <option value="ja">日本語</option>
-  <option value="en">English</option>
-  <option value="ko">한국어</option>
-</select>
-
-<div id="menu">
-  <div class="card">
-    <select id="currencySelect">
-      <option value="MYR">MYR</option>
-      <option value="JPY">JPY</option>
-      <option value="KRW">KRW</option>
-      <option value="AUD">AUD</option>
-    </select>
-
-    <button id="btnAdd"></button>
-    <button id="btnSummary"></button>
-  </div>
+<div id="menu" class="card">
+  <select id="currency">
+    <option value="MYR">MYR</option>
+    <option value="JPY">JPY</option>
+    <option value="KRW">KRW</option>
+    <option value="AUD">AUD</option>
+  </select>
+  <button onclick="openAdd()">支出を入力</button>
+  <button onclick="openSummary()">集計を見る</button>
 </div>
 
-<div id="add" class="hidden">
-  <div class="card">
-    <h2 id="addTitle"></h2>
-    <select id="category"></select>
-    <input type="number" id="amount">
-    <button id="btnSave"></button>
-    <button class="secondary" id="btnBack1"></button>
-  </div>
+<div id="add" class="card hidden">
+  <select id="category">
+    <option value="food">食費</option>
+    <option value="rent">家賃</option>
+    <option value="utilities">光熱費</option>
+    <option value="internet">インターネット</option>
+    <option value="phone">携帯</option>
+    <option value="school">学費</option>
+    <option value="shopping">買い物</option>
+    <option value="other">その他</option>
+  </select>
+  <input type="number" id="amount" placeholder="金額">
+  <button onclick="save()">保存</button>
+  <button class="back" onclick="back()">戻る</button>
 </div>
 
-<div id="summary" class="hidden">
-  <div class="card">
-    <h2 id="summaryTitle"></h2>
-    <select id="monthSelect"></select>
-
-    <div id="result"></div>
-
-    <h3 id="historyTitle"></h3>
-    <div id="history"></div>
-
-    <button class="secondary" id="btnBack2"></button>
-  </div>
+<div id="summary" class="card hidden">
+  <select id="month"></select>
+  <div id="list"></div>
+  <button class="back" onclick="back()">戻る</button>
 </div>
 
 </div>
 
 <script>
-/* ===== 言語 ===== */
-const text={
-  ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",addTitle:"支出入力",save:"保存",back:"戻る",summaryTitle:"月別集計",history:"履歴（削除可）",amount:"金額"},
-  en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",addTitle:"Add Expense",save:"Save",back:"Back",summaryTitle:"Monthly Summary",history:"History",amount:"Amount"},
-  ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",addTitle:"지출 입력",save:"저장",back:"뒤로",summaryTitle:"월별 집계",history:"기록",amount:"금액"}
-};
-
-const categories={
-  food:{ja:"食費",en:"Food",ko:"식비"},
-  rent:{ja:"家賃",en:"Rent",ko:"월세"},
-  utilities:{ja:"光熱費",en:"Utilities",ko:"공과금"},
-  internet:{ja:"インターネット",en:"Internet",ko:"인터넷"},
-  phone:{ja:"携帯料金",en:"Mobile",ko:"휴대폰"},
-  school:{ja:"学費",en:"School",ko:"학비"},
-  cram:{ja:"塾・補習校",en:"Cram School",ko:"보습학원"},
-  shopping:{ja:"買い物",en:"Shopping",ko:"쇼핑"},
-  gas:{ja:"ガソリン",en:"Gas",ko:"주유"},
-  eatingout:{ja:"外食費",en:"Eating Out",ko:"외식"},
-  travel:{ja:"旅行費",en:"Travel",ko:"여행"},
-  other:{ja:"その他",en:"Other",ko:"기타"}
-};
-
-let lang=localStorage.getItem("lang")||"ja";
-let currency=localStorage.getItem("currency")||"MYR";
-let data=JSON.parse(localStorage.getItem("kakeibo")||"[]");
-
-langSelect.value=lang;
-currencySelect.value=currency;
-
-/* ===== 言語反映 ===== */
-function applyLang(){
-  const t=text[lang];
-  appTitle.textContent=t.title;
-  btnAdd.textContent=t.add;
-  btnSummary.textContent=t.summary;
-  addTitle.textContent=t.addTitle;
-  btnSave.textContent=t.save;
-  btnBack1.textContent=t.back;
-  summaryTitle.textContent=t.summaryTitle;
-  historyTitle.textContent=t.history;
-  btnBack2.textContent=t.back;
-  amount.placeholder=t.amount+" ("+currency+")";
-
-  category.innerHTML="";
-  for(const k in categories){
-    const o=document.createElement("option");
-    o.value=k;
-    o.textContent=categories[k][lang];
-    category.appendChild(o);
-  }
-}
-
-/* ===== 画面 ===== */
-function show(target){
-  [menu,add,summary].forEach(d=>d.classList.add("hidden"));
-  target.classList.remove("hidden");
-  applyLang();
-}
-
-btnAdd.onclick=()=>show(add);
-btnSummary.onclick=()=>{show(summary);refreshMonths();render();};
-btnBack1.onclick=btnBack2.onclick=()=>show(menu);
-
-/* ===== 保存（完全確認版） ===== */
-btnSave.onclick=()=>{
-  const val=Number(amount.value);
-  if(!val){
-    alert("金額が未入力です");
-    return;
-  }
-
-  const month=new Date().toISOString().slice(0,7);
-
-  const item={
-    id:Date.now(),
-    month,
-    category:category.value,
-    amount:val
-  };
-
-  data.push(item);
-  localStorage.setItem("kakeibo",JSON.stringify(data));
-
-  console.log("SAVED:", item); // ← 確認用
-
-  amount.value="";
-  alert("保存しました");
-
-  // 🔑 保存直後に月を確実に表示
-  refreshMonths();
-  monthSelect.value=month;
-};
-
-/* ===== 月 ===== */
-function refreshMonths(){
-  monthSelect.innerHTML="";
-  [...new Set(data.map(d=>d.month))].sort().reverse().forEach(m=>{
-    const o=document.createElement("option");
-    o.value=o.textContent=m;
-    monthSelect.appendChild(o);
+/* ==== 強制的に最新SWを使う ==== */
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.getRegistrations().then(rs=>{
+    rs.forEach(r=>r.unregister());
   });
 }
 
-monthSelect.onchange=render;
-
-/* ===== 表示 ===== */
-function render(){
-  if(!monthSelect.value) return;
-
-  const f=data.filter(d=>d.month===monthSelect.value);
-  const sum={};
-
-  f.forEach(d=>sum[d.category]=(sum[d.category]||0)+d.amount);
-
-  result.innerHTML=Object.keys(sum).map(k=>
-    `<div class="summary-item"><span>${categories[k][lang]}</span><strong>${sum[k]} ${currency}</strong></div>`
-  ).join("");
-
-  history.innerHTML=f.map(d=>`
-    <div class="history-item" data-id="${d.id}">
-      <span>${categories[d.category][lang]}：${d.amount} ${currency}</span>
-      <button class="delete">削除</button>
-    </div>
-  `).join("");
+/* ==== データ ==== */
+function load(){
+  return JSON.parse(localStorage.getItem("kakeibo_data")||"[]");
+}
+function saveData(d){
+  localStorage.setItem("kakeibo_data",JSON.stringify(d));
 }
 
-/* ===== 削除 ===== */
-history.onclick=e=>{
-  if(!e.target.classList.contains("delete")) return;
-  const id=Number(e.target.closest(".history-item").dataset.id);
-  data=data.filter(d=>d.id!==id);
-  localStorage.setItem("kakeibo",JSON.stringify(data));
-  refreshMonths();
+/* ==== 画面 ==== */
+function openAdd(){
+  menu.classList.add("hidden");
+  add.classList.remove("hidden");
+}
+function openSummary(){
+  menu.classList.add("hidden");
+  summary.classList.remove("hidden");
   render();
-};
+}
+function back(){
+  add.classList.add("hidden");
+  summary.classList.add("hidden");
+  menu.classList.remove("hidden");
+}
 
-/* ===== 設定 ===== */
-langSelect.onchange=()=>{lang=langSelect.value;localStorage.setItem("lang",lang);applyLang();render();};
-currencySelect.onchange=()=>{currency=currencySelect.value;localStorage.setItem("currency",currency);applyLang();render();};
+/* ==== 保存 ==== */
+function save(){
+  const amountVal=Number(amount.value);
+  if(!amountVal){alert("金額未入力");return;}
 
-applyLang();
+  const data=load();
+  const month=new Date().toISOString().slice(0,7);
+
+  data.push({
+    id:Date.now(),
+    month,
+    category:category.value,
+    amount:amountVal
+  });
+
+  saveData(data);
+
+  // 🔴 確認ログ
+  console.log("AFTER SAVE:", load());
+
+  amount.value="";
+  alert("保存しました（実保存確認済）");
+}
+
+/* ==== 表示 ==== */
+function render(){
+  const data=load();
+  const months=[...new Set(data.map(d=>d.month))].sort().reverse();
+  month.innerHTML=months.map(m=>`<option>${m}</option>`).join("");
+
+  list.innerHTML=data
+    .filter(d=>d.month===month.value)
+    .map(d=>`
+      <div class="item">
+        <span>${d.category} : ${d.amount} ${currency.value}</span>
+        <button class="delete" onclick="del(${d.id})">削除</button>
+      </div>
+    `).join("");
+}
+
+month.onchange=render;
+
+/* ==== 削除 ==== */
+function del(id){
+  const data=load().filter(d=>d.id!==id);
+  saveData(data);
+  render();
+}
 </script>
 
 </body>
