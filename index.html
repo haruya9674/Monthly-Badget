@@ -2,297 +2,240 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json?v=FINAL">
-<meta name="theme-color" content="#4CAF93">
+<title>Expense Tracker</title>
 
 <style>
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F4F6F5;}
-header{background:#4CAF93;color:#fff;padding:18px;font-size:22px;text-align:center;font-weight:600;}
-.container{padding:20px;}
-select,input,button{width:100%;padding:14px;font-size:16px;border-radius:12px;border:none;margin-top:12px;}
-input{border:1px solid #ccc;background:#fff;}
-button{background:#4CAF93;color:#fff;font-weight:bold;}
-button.back{background:#ddd;color:#333;}
-button.sub{background:#eee;color:#555;font-weight:500;font-size:14px;}
-button.delete{background:#E57373;margin-top:6px;font-size:13px;}
-.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;}
-.hidden{display:none;}
-.total{font-size:28px;font-weight:700;text-align:center;margin:10px 0;}
-.breakdown{font-size:15px;display:flex;justify-content:space-between;margin:4px 0;}
-.expense{padding:10px 0;border-bottom:1px solid #eee;text-align:center;}
-.category{font-size:13px;color:#666;}
-.amount{font-size:22px;font-weight:600;}
-.date{font-size:12px;color:#999;margin-top:2px;}
-
-/* ===== TOP ===== */
-.topTotal{
- font-size:36px;
- font-weight:800;
- text-align:center;
- margin:6px 0;
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+ background:#fafafa;
+ color:#222;
 }
-.topMonthLabel{
+.hidden{display:none}
+
+/* ===== HEADER ===== */
+header{
+ text-align:center;
+ padding:16px 10px 10px;
+ background:#fff;
+ border-bottom:1px solid #ddd;
+}
+#month{
  font-size:14px;
  color:#666;
+ margin-bottom:6px;
+}
+#total{
+ font-size:32px;
+ font-weight:700;
+}
+
+/* ===== BUTTONS ===== */
+nav{
+ display:flex;
+ justify-content:space-around;
+ padding:8px;
+ background:#fff;
+ border-bottom:1px solid #ddd;
+}
+button{
+ padding:8px 12px;
+ border:1px solid #ccc;
+ background:#f5f5f5;
+ border-radius:6px;
+ font-size:13px;
+}
+
+/* ===== LIST ===== */
+#list{
+ padding:10px;
+}
+.expense{
+ padding:6px 0;
+ border-bottom:1px solid #eee;
  text-align:center;
- margin-bottom:14px;
+}
+.category{font-size:12px;color:#555}
+.amount{font-size:16px;font-weight:600}
+.date{font-size:11px;color:#888}
+
+/* ===== FORM ===== */
+#addView{
+ padding:12px;
+}
+input,select{
+ width:100%;
+ padding:8px;
+ margin-bottom:8px;
+ font-size:14px;
+}
+
+/* ===== TRANSFER ===== */
+#transferTotal{
+ text-align:center;
+ font-size:14px;
+ color:#444;
+ margin-top:8px;
 }
 </style>
 </head>
 
 <body>
-<header id="title"></header>
 
-<div class="container">
+<header>
+ <div id="month"></div>
+ <div id="total"></div>
+ <div id="transferTotal"></div>
+</header>
 
-<div class="card">
-  <select id="lang"></select>
-  <select id="currency">
-    <option>MYR</option>
-    <option>JPY</option>
-    <option>KRW</option>
-    <option>AUD</option>
-  </select>
-</div>
+<nav>
+ <button id="btnAdd">Add</button>
+ <button id="btnExport">Export</button>
+ <button id="btnImport">Import</button>
+ <select id="lang">
+  <option value="ja">日本語</option>
+  <option value="en">English</option>
+  <option value="ko">한국어</option>
+ </select>
+</nav>
 
-<!-- ===== TOP ===== -->
-<div id="menu" class="card">
-  <div id="topMonthTotal" class="topTotal"></div>
-  <div id="topMonthLabel" class="topMonthLabel"></div>
-  <button id="btnAdd"></button>
-  <button id="btnSummary"></button>
-</div>
+<div id="list"></div>
 
-<!-- ===== ADD ===== -->
-<div id="add" class="card hidden">
-  <select id="category"></select>
-  <input id="otherName" class="hidden">
-  <input type="number" id="amount" step="0.01">
-  <button id="btnSave"></button>
-  <button class="back" id="btnBack1"></button>
-</div>
-
-<!-- ===== SUMMARY ===== -->
-<div id="summary" class="card hidden">
-  <select id="month"></select>
-  <div id="monthTotal" class="total"></div>
-  <div id="transferTotal" class="total" style="font-size:18px;color:#777;"></div>
-  <div id="categoryTotal"></div>
-
-  <button class="sub" id="toggleExport"></button>
-  <div id="exportArea" class="hidden">
-    <button class="sub" id="btnExportFamily"></button>
-    <button class="sub" id="btnImportFamily"></button>
-    <button class="sub" id="btnImportPayPay">PayPay CSV</button>
-    <input type="file" id="familyFile" accept=".json" hidden>
-    <input type="file" id="paypayFile" accept=".csv" hidden>
-  </div>
-
-  <button class="back" id="btnBack2"></button>
-
-  <h3 style="text-align:center;margin-top:16px;">Transactions</h3>
-  <div id="list"></div>
-</div>
-
+<div id="addView" class="hidden">
+ <input id="amount" type="number" placeholder="Amount">
+ <select id="category"></select>
+ <input id="other" class="hidden" placeholder="Category name">
+ <input id="date" type="date">
+ <button id="save">Save</button>
+ <button id="back">Back</button>
 </div>
 
 <script>
+/* ===== TEXT ===== */
 const TEXT={
- ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",
-     export:"エクスポート / 共有",famExp:"家族共有用に書き出し",
-     famImp:"家族データを読み込み",other:"詳細（例：文房具）",
-     monthTotalLabel:"今月の支出"},
- en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",
-     export:"Export / Share",famExp:"Export for Family",
-     famImp:"Import Family Data",other:"Detail (e.g. Stationery)",
-     monthTotalLabel:"This Month"},
- ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",
-     export:"내보내기 / 공유",famExp:"가족 공유용 내보내기",
-     famImp:"가족 데이터 불러오기",other:"상세 (예: 문구)",
-     monthTotalLabel:"이번 달 지출"}
+ ja:{add:"追加",save:"保存",back:"戻る",transfer:"家族間移動",month:"年 月",total:"合計"},
+ en:{add:"Add",save:"Save",back:"Back",transfer:"Transfer",month:"Month",total:"Total"},
+ ko:{add:"추가",save:"저장",back:"뒤로",transfer:"이체",month:"월",total:"합계"}
 };
 
-const CAT={
+/* ===== CATEGORIES ===== */
+const BASE_CAT={
  food:{ja:"食費",en:"Food",ko:"식비"},
- rent:{ja:"家賃",en:"Rent",ko:"월세"},
- gas:{ja:"ガソリン代",en:"Gasoline",ko:"주유비"},
- utilities:{ja:"光熱費",en:"Utilities",ko:"공과금"},
- internet:{ja:"インターネット",en:"Internet",ko:"인터넷"},
- phone:{ja:"携帯",en:"Mobile",ko:"휴대폰"},
- school:{ja:"学費",en:"School",ko:"학비"},
  shopping:{ja:"買い物",en:"Shopping",ko:"쇼핑"},
- transfer:{ja:"振替",en:"Transfer",ko:"이체"},
+ transfer:{ja:"家族間移動",en:"Transfer",ko:"이체"},
  other:{ja:"その他",en:"Other",ko:"기타"}
 };
+const CAT_KEY="cats";
+let CATS=JSON.parse(localStorage.getItem(CAT_KEY))||BASE_CAT;
 
-const KEY="kakeibo_data_FINAL";
-const load=()=>JSON.parse(localStorage.getItem(KEY)||"[]");
-const saveAll=d=>localStorage.setItem(KEY,JSON.stringify(d));
-const uid=()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
-const currentMonth=()=>new Date().toISOString().slice(0,7);
+/* ===== DATA ===== */
+const DATA_KEY="expenses";
+let data=JSON.parse(localStorage.getItem(DATA_KEY))||[];
 
-let langVal=localStorage.getItem("lang")||"ja";
-let activeId=null;
+/* ===== STATE ===== */
+let langVal="ja";
 
-/* ===== Language ===== */
-function applyLang(){
- const t=TEXT[langVal];
- title.textContent=t.title;
- btnAdd.textContent=t.add;
- btnSummary.textContent=t.summary;
- btnSave.textContent=t.save;
- btnBack1.textContent=btnBack2.textContent=t.back;
- toggleExport.textContent=t.export;
- btnExportFamily.textContent=t.famExp;
- btnImportFamily.textContent=t.famImp;
- otherName.placeholder=t.other;
- category.innerHTML="";
- for(const k in CAT) category.innerHTML+=`<option value="${k}">${CAT[k][langVal]}</option>`;
-}
+/* ===== ELEMENTS ===== */
+const list=document.getElementById("list");
+const totalEl=document.getElementById("total");
+const transferEl=document.getElementById("transferTotal");
+const monthEl=document.getElementById("month");
 
-/* ===== TOP ===== */
-function renderTop(){
- const t=TEXT[langVal];
- const m=currentMonth();
- const sum=load()
-   .filter(x=>x.month===m && x.category!=="transfer")
-   .reduce((a,b)=>a+b.amount,0);
- topMonthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
- topMonthLabel.textContent=`${t.monthTotalLabel} · ${m}`;
-}
-
-category.onchange=()=>otherName.classList.toggle("hidden",category.value!=="other");
-
-btnAdd.onclick=()=>{menu.classList.add("hidden");add.classList.remove("hidden");};
-btnSummary.onclick=()=>{menu.classList.add("hidden");summary.classList.remove("hidden");render();};
-btnBack1.onclick=btnBack2.onclick=()=>{
- add.classList.add("hidden");
- summary.classList.add("hidden");
- menu.classList.remove("hidden");
- renderTop();
-};
-
-btnSave.onclick=()=>{
- const v=Number(amount.value);
- if(!v)return;
- const d=load();
- d.push({
-  id:uid(),
-  date:new Date().toISOString().slice(0,10),
-  month:currentMonth(),
-  category:category.value,
-  sub:otherName.value,
-  amount:v
- });
- saveAll(d);
- amount.value="";otherName.value="";
- menu.classList.remove("hidden");
- add.classList.add("hidden");
- renderTop();
-};
-
-toggleExport.onclick=()=>exportArea.classList.toggle("hidden");
-
-/* ===== SUMMARY ===== */
+/* ===== RENDER ===== */
 function render(){
- const d=load();
- const ms=[...new Set(d.map(x=>x.month))].sort().reverse();
- month.innerHTML=ms.map(m=>`<option>${m}</option>`).join("");
- if(!month.value)month.value=ms[0];
+ list.innerHTML="";
+ let total=0, transfer=0;
+ const now=new Date();
 
- const f=d.filter(x=>x.month===month.value);
- let sum=0,transfer=0,bc={};
+ data.forEach(x=>{
+  const d=new Date(x.date);
+  if(d.getMonth()!==now.getMonth())return;
 
- f.forEach(x=>{
   if(x.category==="transfer") transfer+=x.amount;
-  else{
-   sum+=x.amount;
-   bc[x.category]=(bc[x.category]||0)+x.amount;
-  }
+  else total+=x.amount;
+
+  const label=CATS[x.category]?.[langVal]||x.category;
+  list.innerHTML+=`
+   <div class="expense">
+    <div class="category">${label}</div>
+    <div class="amount">${x.amount.toFixed(2)} MYR</div>
+    <div class="date">${x.date}</div>
+   </div>`;
  });
 
- monthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
- transferTotal.textContent=`Transfer: ${transfer.toFixed(2)} ${currency.value}`;
-
- categoryTotal.innerHTML=Object.keys(bc).map(k=>`
-  <div class="breakdown">
-   <span>${CAT[k][langVal]}</span>
-   <span>${bc[k].toFixed(2)} ${currency.value}</span>
-  </div>
- `).join("");
-
- list.innerHTML=f.map(x=>{
-  const label=x.category==="other"&&x.sub
-   ? `${CAT.other[langVal]} (${x.sub})`
-   : CAT[x.category][langVal];
-  return `
-  <div class="expense" onclick="toggle('${x.id}')">
-   <div class="category">${label}</div>
-   <div class="amount">${x.amount.toFixed(2)} ${currency.value}</div>
-   <div class="date">${x.date}</div>
-   ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`:""}
-  </div>`;
- }).join("");
+ monthEl.textContent=`${now.getFullYear()} / ${(now.getMonth()+1).toString().padStart(2,"0")}`;
+ totalEl.textContent=`${TEXT[langVal].total}: ${total.toFixed(2)} MYR`;
+ transferEl.textContent=`${TEXT[langVal].transfer}: ${transfer.toFixed(2)} MYR`;
 }
 
-function toggle(id){activeId=activeId===id?null:id;render();}
-function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();renderTop();}
-month.onchange=render;
+/* ===== CATEGORY UI ===== */
+function applyCats(){
+ const sel=document.getElementById("category");
+ sel.innerHTML="";
+ Object.keys(CATS).forEach(k=>{
+  sel.innerHTML+=`<option value="${k}">${CATS[k][langVal]||k}</option>`;
+ });
+ sel.innerHTML+=`<option value="_add">＋</option>`;
+}
 
-/* ===== Export / Import ===== */
-btnExportFamily.onclick=()=>{
- const b=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
+/* ===== EVENTS ===== */
+btnAdd.onclick=()=>{
+ addView.classList.remove("hidden");
+};
+back.onclick=()=>{
+ addView.classList.add("hidden");
+};
+save.onclick=()=>{
+ const cat=category.value;
+ let finalCat=cat;
+ if(cat==="_add"){
+  const name=other.value.trim();
+  if(!name)return;
+  finalCat="c_"+Date.now();
+  CATS[finalCat]={ja:name,en:name,ko:name};
+  localStorage.setItem(CAT_KEY,JSON.stringify(CATS));
+ }
+ data.push({
+  amount:Number(amount.value),
+  category:finalCat,
+  date:date.value
+ });
+ localStorage.setItem(DATA_KEY,JSON.stringify(data));
+ addView.classList.add("hidden");
+ render(); applyCats();
+};
+btnExport.onclick=()=>{
+ const blob=new Blob([JSON.stringify(data)],{type:"application/json"});
  const a=document.createElement("a");
- a.href=URL.createObjectURL(b);
- a.download="kakeibo_family.json";
+ a.href=URL.createObjectURL(blob);
+ a.download="family_expense.json";
  a.click();
 };
-
-btnImportFamily.onclick=()=>familyFile.click();
-familyFile.onchange=e=>{
- const r=new FileReader();
- r.onload=()=>{
-  const imported=JSON.parse(r.result);
-  const cur=load();
-  const ids=new Set(cur.map(x=>x.id));
-  imported.forEach(x=>{if(!ids.has(x.id))cur.push(x);});
-  saveAll(cur);render();renderTop();
+btnImport.onclick=()=>{
+ const i=document.createElement("input");
+ i.type="file";
+ i.onchange=e=>{
+  const r=new FileReader();
+  r.onload=()=>{
+   const imported=JSON.parse(r.result);
+   data=data.concat(imported);
+   localStorage.setItem(DATA_KEY,JSON.stringify(data));
+   render();
+  };
+  r.readAsText(e.target.files[0]);
  };
- r.readAsText(e.target.files[0]);
+ i.click();
+};
+lang.onchange=e=>{
+ langVal=e.target.value;
+ applyCats(); render();
 };
 
-btnImportPayPay.onclick=()=>paypayFile.click();
-paypayFile.onchange=e=>{
- const r=new FileReader();
- r.onload=()=>{
-  const cur=load();
-  r.result.split(/\r?\n/).slice(1).forEach(l=>{
-   const c=l.split(",");
-   if(c.length<4)return;
-   const date=c[0].replace(/\//g,"-");
-   const amt=Math.abs(Number(c[2]));
-   cur.push({
-    id:"pp_"+uid(),
-    date,
-    month:date.slice(0,7),
-    category:c[3].includes("送金")||c[3].includes("チャージ")?"transfer":"shopping",
-    sub:c[1],
-    amount:amt
-   });
-  });
-  saveAll(cur);render();renderTop();
- };
- r.readAsText(e.target.files[0],"utf-8");
-};
-
-lang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
-lang.value=langVal;
-lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();renderTop();};
-
-applyLang();
-renderTop();
+/* ===== INIT ===== */
+applyCats(); render();
 </script>
+
 </body>
 </html>
