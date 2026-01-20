@@ -24,6 +24,7 @@ button.delete{background:#E57373;font-size:13px;margin-top:6px;}
 .category{font-size:13px;color:#666;}
 .amount{font-size:22px;font-weight:600;}
 .date{font-size:12px;color:#999;margin-top:2px;}
+.smallTotal{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
 </style>
 </head>
 
@@ -39,11 +40,14 @@ button.delete{background:#E57373;font-size:13px;margin-top:6px;}
   </select>
 </div>
 
+<!-- ===== TOP PAGE ===== -->
 <div id="menu" class="card">
+  <div id="topMonthTotal" class="smallTotal"></div>
   <button id="btnAdd"></button>
   <button id="btnSummary"></button>
 </div>
 
+<!-- ===== ADD ===== -->
 <div id="add" class="card hidden">
   <select id="category"></select>
   <input id="otherName" class="hidden">
@@ -52,6 +56,7 @@ button.delete{background:#E57373;font-size:13px;margin-top:6px;}
   <button class="back" id="btnBack1"></button>
 </div>
 
+<!-- ===== SUMMARY ===== -->
 <div id="summary" class="card hidden">
   <select id="month"></select>
   <div id="monthTotal" class="total"></div>
@@ -107,6 +112,11 @@ const uid=()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
 let langVal=localStorage.getItem("lang")||"ja";
 let activeId=null;
 
+function currentMonth(){
+  return new Date().toISOString().slice(0,7);
+}
+
+/* ===== LANGUAGE ===== */
 function applyLang(){
  const t=TEXT[langVal];
  title.textContent=t.title;
@@ -122,26 +132,46 @@ function applyLang(){
  for(const k in CAT) category.innerHTML+=`<option value="${k}">${CAT[k][langVal]}</option>`;
 }
 
+/* ===== TOP TOTAL ===== */
+function renderTop(){
+ const d=load().filter(x=>x.month===currentMonth() && x.category!=="transfer");
+ const sum=d.reduce((a,b)=>a+b.amount,0);
+ topMonthTotal.textContent=`${currentMonth()} 合計：${sum.toFixed(2)} ${currency.value}`;
+}
+
 category.onchange=()=>otherName.classList.toggle("hidden",category.value!=="other");
 
 btnAdd.onclick=()=>{menu.classList.add("hidden");add.classList.remove("hidden");};
 btnSummary.onclick=()=>{menu.classList.add("hidden");summary.classList.remove("hidden");render();};
-btnBack1.onclick=btnBack2.onclick=()=>{add.classList.add("hidden");summary.classList.add("hidden");menu.classList.remove("hidden");};
+btnBack1.onclick=btnBack2.onclick=()=>{
+ add.classList.add("hidden");
+ summary.classList.add("hidden");
+ menu.classList.remove("hidden");
+ renderTop();
+};
 
 btnSave.onclick=()=>{
  const v=Number(amount.value);
  if(!v)return;
  const d=load();
- d.push({id:uid(),date:new Date().toISOString().slice(0,10),
-   month:new Date().toISOString().slice(0,7),
-   category:category.value,sub:otherName.value,amount:v});
+ d.push({
+  id:uid(),
+  date:new Date().toISOString().slice(0,10),
+  month:currentMonth(),
+  category:category.value,
+  sub:otherName.value,
+  amount:v
+ });
  saveAll(d);
  amount.value="";otherName.value="";
- menu.classList.remove("hidden");add.classList.add("hidden");
+ menu.classList.remove("hidden");
+ add.classList.add("hidden");
+ renderTop();
 };
 
 toggleExport.onclick=()=>exportArea.classList.toggle("hidden");
 
+/* ===== SUMMARY ===== */
 function render(){
  const d=load();
  const ms=[...new Set(d.map(x=>x.month))].sort().reverse();
@@ -178,14 +208,16 @@ function render(){
 }
 
 function toggle(id){activeId=activeId===id?null:id;render();}
-function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();}
+function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();renderTop();}
 month.onchange=render;
 
-/* ===== Family Export / Import ===== */
+/* ===== EXPORT / IMPORT ===== */
 btnExportFamily.onclick=()=>{
  const b=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
  const a=document.createElement("a");
- a.href=URL.createObjectURL(b);a.download="kakeibo_family.json";a.click();
+ a.href=URL.createObjectURL(b);
+ a.download="kakeibo_family.json";
+ a.click();
 };
 
 btnImportFamily.onclick=()=>familyFile.click();
@@ -196,12 +228,12 @@ familyFile.onchange=e=>{
   const cur=load();
   const ids=new Set(cur.map(x=>x.id));
   imported.forEach(x=>{if(!ids.has(x.id))cur.push(x);});
-  saveAll(cur);render();
+  saveAll(cur);render();renderTop();
  };
  r.readAsText(e.target.files[0]);
 };
 
-/* ===== PayPay CSV Import ===== */
+/* ===== PAYPAY CSV ===== */
 btnImportPayPay.onclick=()=>paypayFile.click();
 paypayFile.onchange=e=>{
  const r=new FileReader();
@@ -209,30 +241,31 @@ paypayFile.onchange=e=>{
   const lines=r.result.split(/\r?\n/).slice(1);
   const cur=load();
   lines.forEach(l=>{
-    const c=l.split(",");
-    if(c.length<4)return;
-    const date=c[0].replace(/\//g,"-");
-    const amt=Math.abs(Number(c[2]));
-    const type=c[3];
-    cur.push({
-      id:"pp_"+uid(),
-      date,
-      month:date.slice(0,7),
-      category:type.includes("送金")||type.includes("チャージ")?"transfer":"shopping",
-      sub:c[1],
-      amount:amt
-    });
+   const c=l.split(",");
+   if(c.length<4)return;
+   const date=c[0].replace(/\//g,"-");
+   const amt=Math.abs(Number(c[2]));
+   const type=c[3];
+   cur.push({
+    id:"pp_"+uid(),
+    date,
+    month:date.slice(0,7),
+    category:type.includes("送金")||type.includes("チャージ")?"transfer":"shopping",
+    sub:c[1],
+    amount:amt
+   });
   });
-  saveAll(cur);render();
+  saveAll(cur);render();renderTop();
  };
  r.readAsText(e.target.files[0],"utf-8");
 };
 
 lang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
 lang.value=langVal;
-lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();};
+lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();renderTop();};
 
 applyLang();
+renderTop();
 </script>
 </body>
 </html>
