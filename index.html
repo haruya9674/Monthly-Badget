@@ -6,25 +6,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="manifest.json?v=FINAL">
 <meta name="theme-color" content="#4CAF93">
+
 <style>
 body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#F4F6F5;}
-header{background:#4CAF93;color:#fff;padding:16px;font-size:22px;text-align:center;font-weight:600;}
-.container{padding:16px;}
-select,input,button{width:100%;padding:12px;font-size:15px;border-radius:12px;border:none;margin-top:10px;}
+header{background:#4CAF93;color:#fff;padding:18px;font-size:22px;text-align:center;font-weight:600;}
+.container{padding:20px;}
+select,input,button{width:100%;padding:14px;font-size:16px;border-radius:12px;border:none;margin-top:12px;}
 input{border:1px solid #ccc;background:#fff;}
-button{background:#4CAF93;color:#fff;font-weight:600;}
+button{background:#4CAF93;color:#fff;font-weight:bold;}
 button.back{background:#ddd;color:#333;}
-button.sub{background:#eee;color:#555;font-size:14px;}
-button.delete{background:#E57373;font-size:13px;margin-top:6px;}
-.card{background:#fff;border-radius:16px;padding:16px;margin-bottom:16px;}
+button.sub{background:#eee;color:#555;font-weight:500;font-size:14px;}
+button.delete{background:#E57373;margin-top:6px;font-size:13px;}
+.card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;}
 .hidden{display:none;}
-.total{font-size:30px;font-weight:700;text-align:center;margin:10px 0;}
-.breakdown{display:flex;justify-content:space-between;font-size:14px;margin:4px 0;}
-.expense{border-bottom:1px solid #eee;padding:10px 0;text-align:center;}
+.total{font-size:28px;font-weight:700;text-align:center;margin:10px 0;}
+.breakdown{font-size:15px;display:flex;justify-content:space-between;margin:4px 0;}
+.expense{padding:10px 0;border-bottom:1px solid #eee;text-align:center;}
 .category{font-size:13px;color:#666;}
 .amount{font-size:22px;font-weight:600;}
 .date{font-size:12px;color:#999;margin-top:2px;}
-.smallTotal{font-size:22px;font-weight:700;text-align:center;margin-bottom:6px;}
+
+/* ===== TOP ===== */
+.topTotal{
+ font-size:36px;
+ font-weight:800;
+ text-align:center;
+ margin:6px 0;
+}
+.topMonthLabel{
+ font-size:14px;
+ color:#666;
+ text-align:center;
+ margin-bottom:14px;
+}
 </style>
 </head>
 
@@ -36,13 +50,17 @@ button.delete{background:#E57373;font-size:13px;margin-top:6px;}
 <div class="card">
   <select id="lang"></select>
   <select id="currency">
-    <option>MYR</option><option>JPY</option><option>KRW</option><option>AUD</option>
+    <option>MYR</option>
+    <option>JPY</option>
+    <option>KRW</option>
+    <option>AUD</option>
   </select>
 </div>
 
-<!-- ===== TOP PAGE ===== -->
+<!-- ===== TOP ===== -->
 <div id="menu" class="card">
-  <div id="topMonthTotal" class="smallTotal"></div>
+  <div id="topMonthTotal" class="topTotal"></div>
+  <div id="topMonthLabel" class="topMonthLabel"></div>
   <button id="btnAdd"></button>
   <button id="btnSummary"></button>
 </div>
@@ -61,14 +79,13 @@ button.delete{background:#E57373;font-size:13px;margin-top:6px;}
   <select id="month"></select>
   <div id="monthTotal" class="total"></div>
   <div id="transferTotal" class="total" style="font-size:18px;color:#777;"></div>
-
   <div id="categoryTotal"></div>
 
   <button class="sub" id="toggleExport"></button>
   <div id="exportArea" class="hidden">
     <button class="sub" id="btnExportFamily"></button>
     <button class="sub" id="btnImportFamily"></button>
-    <button class="sub" id="btnImportPayPay">PayPay CSVを読み込み</button>
+    <button class="sub" id="btnImportPayPay">PayPay CSV</button>
     <input type="file" id="familyFile" accept=".json" hidden>
     <input type="file" id="paypayFile" accept=".csv" hidden>
   </div>
@@ -83,12 +100,18 @@ button.delete{background:#E57373;font-size:13px;margin-top:6px;}
 
 <script>
 const TEXT={
- ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",export:"エクスポート / 共有",
-     famExp:"家族共有用に書き出し",famImp:"家族データを読み込み",other:"詳細（例：文房具）"},
- en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",export:"Export / Share",
-     famExp:"Export for Family",famImp:"Import Family Data",other:"Detail (e.g. Stationery)"},
- ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",export:"내보내기 / 공유",
-     famExp:"가족 공유용 내보내기",famImp:"가족 데이터 불러오기",other:"상세 (예: 문구)"}
+ ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",
+     export:"エクスポート / 共有",famExp:"家族共有用に書き出し",
+     famImp:"家族データを読み込み",other:"詳細（例：文房具）",
+     monthTotalLabel:"今月の支出"},
+ en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",
+     export:"Export / Share",famExp:"Export for Family",
+     famImp:"Import Family Data",other:"Detail (e.g. Stationery)",
+     monthTotalLabel:"This Month"},
+ ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",
+     export:"내보내기 / 공유",famExp:"가족 공유용 내보내기",
+     famImp:"가족 데이터 불러오기",other:"상세 (예: 문구)",
+     monthTotalLabel:"이번 달 지출"}
 };
 
 const CAT={
@@ -108,15 +131,12 @@ const KEY="kakeibo_data_FINAL";
 const load=()=>JSON.parse(localStorage.getItem(KEY)||"[]");
 const saveAll=d=>localStorage.setItem(KEY,JSON.stringify(d));
 const uid=()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
+const currentMonth=()=>new Date().toISOString().slice(0,7);
 
 let langVal=localStorage.getItem("lang")||"ja";
 let activeId=null;
 
-function currentMonth(){
-  return new Date().toISOString().slice(0,7);
-}
-
-/* ===== LANGUAGE ===== */
+/* ===== Language ===== */
 function applyLang(){
  const t=TEXT[langVal];
  title.textContent=t.title;
@@ -132,11 +152,15 @@ function applyLang(){
  for(const k in CAT) category.innerHTML+=`<option value="${k}">${CAT[k][langVal]}</option>`;
 }
 
-/* ===== TOP TOTAL ===== */
+/* ===== TOP ===== */
 function renderTop(){
- const d=load().filter(x=>x.month===currentMonth() && x.category!=="transfer");
- const sum=d.reduce((a,b)=>a+b.amount,0);
- topMonthTotal.textContent=`${currentMonth()} 合計：${sum.toFixed(2)} ${currency.value}`;
+ const t=TEXT[langVal];
+ const m=currentMonth();
+ const sum=load()
+   .filter(x=>x.month===m && x.category!=="transfer")
+   .reduce((a,b)=>a+b.amount,0);
+ topMonthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
+ topMonthLabel.textContent=`${t.monthTotalLabel} · ${m}`;
 }
 
 category.onchange=()=>otherName.classList.toggle("hidden",category.value!=="other");
@@ -182,27 +206,33 @@ function render(){
  let sum=0,transfer=0,bc={};
 
  f.forEach(x=>{
-   if(x.category==="transfer") transfer+=x.amount;
-   else{
-     sum+=x.amount;
-     bc[x.category]=(bc[x.category]||0)+x.amount;
-   }
+  if(x.category==="transfer") transfer+=x.amount;
+  else{
+   sum+=x.amount;
+   bc[x.category]=(bc[x.category]||0)+x.amount;
+  }
  });
 
  monthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
  transferTotal.textContent=`Transfer: ${transfer.toFixed(2)} ${currency.value}`;
 
  categoryTotal.innerHTML=Object.keys(bc).map(k=>`
-  <div class="breakdown"><span>${CAT[k][langVal]}</span><span>${bc[k].toFixed(2)}</span></div>
+  <div class="breakdown">
+   <span>${CAT[k][langVal]}</span>
+   <span>${bc[k].toFixed(2)} ${currency.value}</span>
+  </div>
  `).join("");
 
  list.innerHTML=f.map(x=>{
-  const label=x.category==="other"&&x.sub?`${CAT.other[langVal]} (${x.sub})`:CAT[x.category][langVal];
-  return `<div class="expense" onclick="toggle('${x.id}')">
-    <div class="category">${label}</div>
-    <div class="amount">${x.amount.toFixed(2)} ${currency.value}</div>
-    <div class="date">${x.date}</div>
-    ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`:""}
+  const label=x.category==="other"&&x.sub
+   ? `${CAT.other[langVal]} (${x.sub})`
+   : CAT[x.category][langVal];
+  return `
+  <div class="expense" onclick="toggle('${x.id}')">
+   <div class="category">${label}</div>
+   <div class="amount">${x.amount.toFixed(2)} ${currency.value}</div>
+   <div class="date">${x.date}</div>
+   ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`:""}
   </div>`;
  }).join("");
 }
@@ -211,7 +241,7 @@ function toggle(id){activeId=activeId===id?null:id;render();}
 function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();renderTop();}
 month.onchange=render;
 
-/* ===== EXPORT / IMPORT ===== */
+/* ===== Export / Import ===== */
 btnExportFamily.onclick=()=>{
  const b=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
  const a=document.createElement("a");
@@ -233,24 +263,21 @@ familyFile.onchange=e=>{
  r.readAsText(e.target.files[0]);
 };
 
-/* ===== PAYPAY CSV ===== */
 btnImportPayPay.onclick=()=>paypayFile.click();
 paypayFile.onchange=e=>{
  const r=new FileReader();
  r.onload=()=>{
-  const lines=r.result.split(/\r?\n/).slice(1);
   const cur=load();
-  lines.forEach(l=>{
+  r.result.split(/\r?\n/).slice(1).forEach(l=>{
    const c=l.split(",");
    if(c.length<4)return;
    const date=c[0].replace(/\//g,"-");
    const amt=Math.abs(Number(c[2]));
-   const type=c[3];
    cur.push({
     id:"pp_"+uid(),
     date,
     month:date.slice(0,7),
-    category:type.includes("送金")||type.includes("チャージ")?"transfer":"shopping",
+    category:c[3].includes("送金")||c[3].includes("チャージ")?"transfer":"shopping",
     sub:c[1],
     amount:amt
    });
