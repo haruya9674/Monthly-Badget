@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>Kakeibo</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json?v=FINAL">
 <meta name="theme-color" content="#4CAF93">
 
 <style>
@@ -11,21 +12,26 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif
 header{background:#4CAF93;color:#fff;padding:18px;font-size:22px;text-align:center;font-weight:600;}
 .container{padding:20px;}
 select,input,button{width:100%;padding:14px;font-size:16px;border-radius:12px;border:none;margin-top:12px;}
-input{border:1px solid #ccc;}
+input{border:1px solid #ccc;background:#fff;}
 button{background:#4CAF93;color:#fff;font-weight:bold;}
 button.back{background:#ddd;color:#333;}
-button.sub{background:#eee;color:#555;font-weight:500;}
+button.sub{background:#eee;color:#555;font-weight:500;font-size:14px;}
 button.delete{background:#E57373;margin-top:6px;font-size:13px;}
 .card{background:#fff;border-radius:16px;padding:20px;margin-bottom:20px;}
 .hidden{display:none;}
-.topTotal{font-size:36px;font-weight:800;text-align:center;}
-.topMonth{font-size:14px;color:#666;text-align:center;margin-bottom:12px;}
-.breakdown{display:flex;justify-content:space-between;font-size:14px;margin:4px 0;}
-.expense{border-bottom:1px solid #eee;padding:6px 0;}
-.expenseRow{display:flex;justify-content:space-between;align-items:center;}
-.date{font-size:12px;color:#999;width:80px;}
-.amount{font-size:18px;font-weight:600;}
+.total{font-size:28px;font-weight:700;text-align:center;margin:10px 0;}
+.breakdown{font-size:15px;display:flex;justify-content:space-between;margin:4px 0;}
+.expense{padding:6px 0;border-bottom:1px solid #eee;}
 .category{font-size:13px;color:#666;}
+.amount{font-size:20px;font-weight:600;}
+.date{font-size:12px;color:#999;margin-right:6px;}
+
+.topTotal{font-size:36px;font-weight:800;text-align:center;margin:6px 0;}
+.topMonthLabel{font-size:14px;color:#666;text-align:center;margin-bottom:14px;}
+
+.catRow{display:flex;gap:8px;margin-top:10px;}
+.catRow span{width:40%;font-size:14px;color:#555;}
+.catRow input{width:60%;padding:10px;border-radius:10px;border:1px solid #ccc;}
 </style>
 </head>
 
@@ -35,239 +41,262 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
 <div class="container">
 
 <div class="card">
-<select id="lang"></select>
-<select id="currency">
-<option>MYR</option><option>JPY</option><option>KRW</option><option>AUD</option>
-</select>
+  <select id="lang"></select>
+  <select id="currency">
+    <option>MYR</option>
+    <option>JPY</option>
+    <option>KRW</option>
+    <option>AUD</option>
+  </select>
 </div>
 
 <div id="menu" class="card">
-<div id="topTotal" class="topTotal"></div>
-<div id="topMonth" class="topMonth"></div>
-<button id="btnAdd"></button>
-<button id="btnSummary"></button>
+  <div id="topMonthTotal" class="topTotal"></div>
+  <div id="topMonthLabel" class="topMonthLabel"></div>
+  <button id="btnAdd"></button>
+  <button id="btnSummary"></button>
+  <button class="sub" id="btnEditCategory"></button>
 </div>
 
 <div id="add" class="card hidden">
-<select id="category"></select>
-<input id="sub" placeholder="Detail">
-<input type="number" id="amount">
-<button id="btnSave"></button>
-<button class="back" id="btnBack1"></button>
+  <select id="category"></select>
+  <input id="otherName" class="hidden">
+  <input type="number" id="amount" step="0.01">
+  <button id="btnSave"></button>
+  <button class="back" id="btnBack1"></button>
+</div>
+
+<div id="editCategory" class="card hidden">
+  <h3 id="editCatTitle" style="text-align:center;"></h3>
+  <select id="editLang"></select>
+  <div id="categoryEditor"></div>
+  <button id="btnSaveCategory"></button>
+  <button class="back" id="btnBackCategory"></button>
 </div>
 
 <div id="summary" class="card hidden">
-<select id="month"></select>
-<div id="monthTotal" class="topTotal"></div>
-<div id="categoryTotal"></div>
+  <select id="month"></select>
+  <div id="monthTotal" class="total"></div>
+  <div id="transferTotal" class="total" style="font-size:18px;color:#777;"></div>
+  <div id="categoryTotal"></div>
 
-<button class="sub" id="btnToggleExport"></button>
+  <button class="sub" id="toggleExport"></button>
+  <div id="exportArea" class="hidden">
+    <button class="sub" id="btnExportFamily"></button>
+    <button class="sub" id="btnImportFamily"></button>
+    <button class="sub" id="btnImportPayPay"></button>
+    <input type="file" id="familyFile" accept=".json" hidden>
+    <input type="file" id="paypayFile" accept=".csv" hidden>
+  </div>
 
-<div id="exportArea" class="hidden">
-<button class="sub" id="btnExportFamily">Family Export</button>
-<button class="sub" id="btnImportFamily">Family Import</button>
-<button class="sub" id="btnImportPayPay">PayPay CSV</button>
-<input type="file" id="fileFamily" accept=".json" hidden>
-<input type="file" id="filePayPay" accept=".csv" hidden>
-</div>
-
-<button class="back" id="btnBack2"></button>
-<div id="list"></div>
+  <button class="back" id="btnBack2"></button>
+  <div id="list"></div>
 </div>
 
 </div>
 
 <script>
-/* ===== TEXT ===== */
 const TEXT={
-ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",export:"エクスポート / 共有"},
-en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",export:"Export / Share"},
-ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",export:"내보내기 / 공유"}
+ ja:{
+  title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",
+  export:"エクスポート / 共有",
+  famExp:"家族共有用に書き出し",
+  famImp:"家族データを読み込み",
+  other:"詳細（例：文房具）",
+  monthTotalLabel:"今月の支出",
+  editCat:"カテゴリ名を編集",
+  editCatTitle:"カテゴリ名編集",
+  saved:"保存しました",
+  delete:"削除",
+  transfer:"トランスファー",
+  paypay:"PayPay CSV"
+ },
+ en:{
+  title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",
+  export:"Export / Share",
+  famExp:"Export for Family",
+  famImp:"Import Family Data",
+  other:"Detail",
+  monthTotalLabel:"This Month",
+  editCat:"Edit Categories",
+  editCatTitle:"Edit Category Names",
+  saved:"Saved",
+  delete:"Delete",
+  transfer:"Transfer",
+  paypay:"PayPay CSV"
+ },
+ ko:{
+  title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",
+  export:"내보내기 / 공유",
+  famExp:"가족 공유용 내보내기",
+  famImp:"가족 데이터 불러오기",
+  other:"상세",
+  monthTotalLabel:"이번 달",
+  editCat:"카테고리 이름 편집",
+  editCatTitle:"카테고리 편집",
+  saved:"저장되었습니다",
+  delete:"삭제",
+  transfer:"이체",
+  paypay:"PayPay CSV"
+ }
 };
 
-/* ===== CATEGORY MASTER ===== */
-const DEFAULT_CAT={
-food:{ja:"食費",en:"Food",ko:"식비"},
-rent:{ja:"家賃",en:"Rent",ko:"월세"},
-gas:{ja:"ガソリン代",en:"Gas",ko:"주유비"},
-utilities:{ja:"光熱費",en:"Utilities",ko:"공과금"},
-internet:{ja:"インターネット",en:"Internet",ko:"인터넷"},
-shopping:{ja:"買い物",en:"Shopping",ko:"쇼핑"},
-transfer:{ja:"トランスファー",en:"Transfer",ko:"이체"},
-other:{ja:"その他",en:"Other",ko:"기타"}
+const CAT_DEFAULT={
+ food:{ja:"食費",en:"Food",ko:"식비"},
+ rent:{ja:"家賃",en:"Rent",ko:"월세"},
+ gas:{ja:"ガソリン代",en:"Gasoline",ko:"주유비"},
+ utilities:{ja:"光熱費",en:"Utilities",ko:"공과금"},
+ internet:{ja:"インターネット",en:"Internet",ko:"인터넷"},
+ phone:{ja:"携帯",en:"Mobile",ko:"휴대폰"},
+ school:{ja:"学費",en:"School",ko:"학비"},
+ shopping:{ja:"買い物",en:"Shopping",ko:"쇼핑"},
+ transfer:{ja:"トランスファー",en:"Transfer",ko:"이체"},
+ other:{ja:"その他",en:"Other",ko:"기타"}
 };
 
-const CAT_KEY="kakeibo_categories";
-const DATA_KEY="kakeibo_data";
+const CAT_KEY="kakeibo_cat_labels";
+const CAT_LABELS=JSON.parse(localStorage.getItem(CAT_KEY))||CAT_DEFAULT;
+const saveCats=()=>localStorage.setItem(CAT_KEY,JSON.stringify(CAT_LABELS));
 
-const loadCat=()=>JSON.parse(localStorage.getItem(CAT_KEY)||JSON.stringify(DEFAULT_CAT));
-const saveCat=d=>localStorage.setItem(CAT_KEY,JSON.stringify(d));
-
-const load=()=>JSON.parse(localStorage.getItem(DATA_KEY)||"[]");
-const save=d=>localStorage.setItem(DATA_KEY,JSON.stringify(d));
+const KEY="kakeibo_data_FINAL";
+const load=()=>JSON.parse(localStorage.getItem(KEY)||"[]");
+const saveAll=d=>localStorage.setItem(KEY,JSON.stringify(d));
+const uid=()=>Date.now()+"_"+Math.random().toString(36).slice(2,6);
+const currentMonth=()=>new Date().toISOString().slice(0,7);
 
 let langVal=localStorage.getItem("lang")||"ja";
+let activeId=null;
 
-/* ===== INIT ===== */
 function applyLang(){
-const t=TEXT[langVal];
-title.textContent=t.title;
-btnAdd.textContent=t.add;
-btnSummary.textContent=t.summary;
-btnSave.textContent=t.save;
-btnBack1.textContent=btnBack2.textContent=t.back;
-btnToggleExport.textContent=t.export;
-renderCategorySelect();
+ const t=TEXT[langVal];
+ title.textContent=t.title;
+ btnAdd.textContent=t.add;
+ btnSummary.textContent=t.summary;
+ btnSave.textContent=t.save;
+ btnBack1.textContent=btnBack2.textContent=btnBackCategory.textContent=t.back;
+ btnEditCategory.textContent=t.editCat;
+ editCatTitle.textContent=t.editCatTitle;
+ toggleExport.textContent=t.export;
+ btnExportFamily.textContent=t.famExp;
+ btnImportFamily.textContent=t.famImp;
+ btnImportPayPay.textContent=t.paypay;
+ btnSaveCategory.textContent=t.save;
+ otherName.placeholder=t.other;
+
+ category.innerHTML="";
+ for(const k in CAT_LABELS){
+  category.innerHTML+=`<option value="${k}">${CAT_LABELS[k][langVal]}</option>`;
+ }
 }
 
-function renderCategorySelect(){
-const cat=loadCat();
-category.innerHTML=Object.keys(cat).map(k=>
-`<option value="${k}">${cat[k][langVal]}</option>`
-).join("");
-}
-
-function currentMonth(){
-return new Date().toISOString().slice(0,7);
-}
-
-/* ===== TOP ===== */
 function renderTop(){
-const d=load().filter(x=>x.month===currentMonth() && x.category!=="transfer");
-const sum=d.reduce((a,b)=>a+b.amount,0);
-topTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
-topMonth.textContent=currentMonth();
+ const m=currentMonth();
+ const sum=load().filter(x=>x.month===m&&x.category!=="transfer")
+ .reduce((a,b)=>a+b.amount,0);
+ topMonthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
+ topMonthLabel.textContent=`${TEXT[langVal].monthTotalLabel} · ${m}`;
 }
 
-/* ===== ADD ===== */
+category.onchange=()=>otherName.classList.toggle("hidden",category.value!=="other");
+
 btnAdd.onclick=()=>{menu.classList.add("hidden");add.classList.remove("hidden");};
+btnSummary.onclick=()=>{menu.classList.add("hidden");summary.classList.remove("hidden");render();};
+btnBack1.onclick=btnBack2.onclick=()=>{
+ add.classList.add("hidden");summary.classList.add("hidden");
+ menu.classList.remove("hidden");renderTop();
+};
+
 btnSave.onclick=()=>{
-const d=load();
-d.push({
-id:Date.now()+"_"+Math.random(),
-date:new Date().toISOString().slice(0,10),
-month:currentMonth(),
-category:category.value,
-sub:sub.value,
-amount:Number(amount.value)
-});
-save(d);
-amount.value=sub.value="";
-add.classList.add("hidden");
-menu.classList.remove("hidden");
-renderTop();
+ const v=Number(amount.value); if(!v)return;
+ const d=load();
+ d.push({id:uid(),date:new Date().toISOString().slice(0,10),
+ month:currentMonth(),category:category.value,sub:otherName.value,amount:v});
+ saveAll(d);amount.value="";otherName.value="";
+ menu.classList.remove("hidden");add.classList.add("hidden");renderTop();
 };
 
-/* ===== SUMMARY ===== */
-btnSummary.onclick=()=>{
-menu.classList.add("hidden");
-summary.classList.remove("hidden");
-renderSummary();
+btnEditCategory.onclick=()=>{
+ menu.classList.add("hidden");
+ editCategory.classList.remove("hidden");
+ renderCategoryEditor();
 };
 
-function renderSummary(){
-const d=load();
-const months=[...new Set(d.map(x=>x.month))].sort().reverse();
-month.innerHTML=months.map(m=>`<option>${m}</option>`).join("");
-const sel=month.value||months[0];
-month.value=sel;
+btnBackCategory.onclick=()=>{
+ editCategory.classList.add("hidden");
+ menu.classList.remove("hidden");
+ renderTop();
+};
 
-const f=d.filter(x=>x.month===sel);
-const cat=loadCat();
-let sum=0,bc={};
+editLang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
+editLang.value=langVal;
+editLang.onchange=renderCategoryEditor;
 
-f.forEach(x=>{
-if(x.category!=="transfer"){
-sum+=x.amount;
-bc[x.category]=(bc[x.category]||0)+x.amount;
-}
-});
-
-monthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
-categoryTotal.innerHTML=Object.keys(bc).map(k=>`
-<div class="breakdown">
-<span>${cat[k][langVal]}</span>
-<span>${bc[k].toFixed(2)}</span>
-</div>`).join("");
-
-list.innerHTML=f.map(x=>`
-<div class="expense">
-<div class="expenseRow">
-<span class="date">${x.date}</span>
-<span class="amount">${x.amount.toFixed(2)}</span>
-</div>
-<div class="category">${cat[x.category][langVal]} ${x.sub||""}</div>
-</div>`).join("");
+function renderCategoryEditor(){
+ const l=editLang.value;
+ categoryEditor.innerHTML="";
+ for(const k in CAT_LABELS){
+  categoryEditor.innerHTML+=`
+   <div class="catRow">
+    <span>${k}</span>
+    <input data-key="${k}" value="${CAT_LABELS[k][l]}">
+   </div>`;
+ }
 }
 
-/* ===== EXPORT / IMPORT ===== */
-btnToggleExport.onclick=()=>exportArea.classList.toggle("hidden");
-
-btnExportFamily.onclick=()=>{
-const blob=new Blob([JSON.stringify(load(),null,2)],{type:"application/json"});
-const a=document.createElement("a");
-a.href=URL.createObjectURL(blob);
-a.download="kakeibo_family.json";
-a.click();
+btnSaveCategory.onclick=()=>{
+ const l=editLang.value;
+ document.querySelectorAll("#categoryEditor input").forEach(i=>{
+  CAT_LABELS[i.dataset.key][l]=i.value;
+ });
+ saveCats();applyLang();render();renderTop();
+ alert(TEXT[langVal].saved);
 };
 
-btnImportFamily.onclick=()=>fileFamily.click();
-fileFamily.onchange=e=>{
-const r=new FileReader();
-r.onload=()=>{
-const cur=load();
-const imp=JSON.parse(r.result);
-const ids=new Set(cur.map(x=>x.id));
-imp.forEach(x=>{if(!ids.has(x.id))cur.push(x);});
-save(cur);
-renderSummary();renderTop();
-};
-r.readAsText(e.target.files[0]);
-};
+function render(){
+ const d=load();
+ const ms=[...new Set(d.map(x=>x.month))].sort().reverse();
+ month.innerHTML=ms.map(m=>`<option>${m}</option>`).join("");
+ if(!month.value)month.value=ms[0];
 
-btnImportPayPay.onclick=()=>filePayPay.click();
-filePayPay.onchange=e=>{
-const r=new FileReader();
-r.onload=()=>{
-const cur=load();
-r.result.split(/\r?\n/).slice(1).forEach(l=>{
-const c=l.split(",");
-if(c.length<3)return;
-const date=c[0].replace(/\//g,"-");
-const amt=Math.abs(Number(c[2]));
-cur.push({
-id:"pp_"+Date.now(),
-date,
-month:date.slice(0,7),
-category:"shopping",
-sub:c[1],
-amount:amt
-});
-});
-save(cur);
-renderSummary();renderTop();
-};
-r.readAsText(e.target.files[0],"utf-8");
-};
+ const f=d.filter(x=>x.month===month.value);
+ let sum=0,transfer=0,bc={};
 
-/* ===== LANG ===== */
+ f.forEach(x=>{
+  if(x.category==="transfer")transfer+=x.amount;
+  else{sum+=x.amount;bc[x.category]=(bc[x.category]||0)+x.amount;}
+ });
+
+ monthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
+ transferTotal.textContent=`${TEXT[langVal].transfer}: ${transfer.toFixed(2)} ${currency.value}`;
+
+ categoryTotal.innerHTML=Object.keys(bc).map(k=>`
+  <div class="breakdown">
+   <span>${CAT_LABELS[k][langVal]}</span>
+   <span>${bc[k].toFixed(2)} ${currency.value}</span>
+  </div>`).join("");
+
+ list.innerHTML=f.map(x=>`
+  <div class="expense" onclick="toggle('${x.id}')">
+   <div>
+    <span class="date">${x.date}</span>
+    <span class="amount">${x.amount.toFixed(2)} ${currency.value}</span>
+   </div>
+   <div class="category">
+    ${x.category==="other"&&x.sub?`${CAT_LABELS.other[langVal]} (${x.sub})`:CAT_LABELS[x.category][langVal]}
+   </div>
+   ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">${TEXT[langVal].delete}</button>`:""}
+  </div>`).join("");
+}
+
+function toggle(id){activeId=activeId===id?null:id;render();}
+function del(id){saveAll(load().filter(x=>x.id!==id));activeId=null;render();renderTop();}
+month.onchange=render;
+
 lang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
 lang.value=langVal;
-lang.onchange=()=>{
-langVal=lang.value;
-localStorage.setItem("lang",langVal);
-applyLang();renderSummary();renderTop();
-};
+lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();renderTop();};
 
-btnBack1.onclick=btnBack2.onclick=()=>{
-add.classList.add("hidden");
-summary.classList.add("hidden");
-menu.classList.remove("hidden");
-renderTop();
-};
-
-applyLang();
-renderTop();
+applyLang();renderTop();
 </script>
 </body>
 </html>
