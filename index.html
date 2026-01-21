@@ -25,12 +25,8 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
 .category{font-size:13px;color:#666;}
 .amount{font-size:20px;font-weight:600;}
 .date{font-size:12px;color:#999;margin-right:6px;}
-
-/* TOP */
 .topTotal{font-size:36px;font-weight:800;text-align:center;margin:6px 0;}
 .topMonthLabel{font-size:14px;color:#666;text-align:center;margin-bottom:14px;}
-
-/* Category Editor */
 .catRow{display:flex;gap:8px;margin-top:10px;}
 .catRow span{width:40%;font-size:14px;color:#555;}
 .catRow input{width:60%;padding:10px;border-radius:10px;border:1px solid #ccc;}
@@ -137,7 +133,7 @@ const currentMonth=()=>new Date().toISOString().slice(0,7);
 let langVal=localStorage.getItem("lang")||"ja";
 let activeId=null;
 
-/* Language */
+/* ===== Language ===== */
 function applyLang(){
  const t=TEXT[langVal];
  title.textContent=t.title;
@@ -156,7 +152,12 @@ function applyLang(){
  }
 }
 
-/* TOP */
+/* ===== Export Toggle（追加） ===== */
+toggleExport.onclick=()=>{
+ exportArea.classList.toggle("hidden");
+};
+
+/* ===== TOP ===== */
 function renderTop(){
  const m=currentMonth();
  const sum=load().filter(x=>x.month===m&&x.category!=="transfer")
@@ -191,6 +192,7 @@ btnEditCategory.onclick=()=>{
  editCategory.classList.remove("hidden");
  renderCategoryEditor();
 };
+
 btnBackCategory.onclick=()=>{
  editCategory.classList.add("hidden");
  menu.classList.remove("hidden");
@@ -218,7 +220,10 @@ btnSaveCategory.onclick=()=>{
  document.querySelectorAll("#categoryEditor input").forEach(i=>{
   CAT_LABELS[i.dataset.key][l]=i.value;
  });
- saveCats();applyLang();render();renderTop();
+ saveCats();
+ applyLang();
+ render();
+ renderTop();
  alert("保存しました");
 };
 
@@ -252,8 +257,14 @@ function render(){
     <span class="date">${x.date}</span>
     <span class="amount">${x.amount.toFixed(2)} ${currency.value}</span>
    </div>
-   <div class="category">${x.category==="other"&&x.sub?`${CAT_LABELS.other[langVal]} (${x.sub})`:CAT_LABELS[x.category][langVal]}</div>
-   ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`:""}
+   <div class="category">
+    ${x.category==="other"&&x.sub
+      ?`${CAT_LABELS.other[langVal]} (${x.sub})`
+      :CAT_LABELS[x.category][langVal]}
+   </div>
+   ${activeId===x.id
+     ?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`
+     :""}
   </div>`).join("");
 }
 
@@ -263,9 +274,16 @@ month.onchange=render;
 
 lang.innerHTML=`<option value="ja">日本語</option><option value="en">English</option><option value="ko">한국어</option>`;
 lang.value=langVal;
-lang.onchange=()=>{langVal=lang.value;localStorage.setItem("lang",langVal);applyLang();render();renderTop();};
+lang.onchange=()=>{
+ langVal=lang.value;
+ localStorage.setItem("lang",langVal);
+ applyLang();
+ render();
+ renderTop();
+};
 
-applyLang();renderTop();
+applyLang();
+renderTop();
 </script>
 </body>
 </html>
