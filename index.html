@@ -26,9 +26,11 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
 .amount{font-size:20px;font-weight:600;}
 .date{font-size:12px;color:#999;margin-right:6px;}
 
+/* TOP */
 .topTotal{font-size:36px;font-weight:800;text-align:center;margin:6px 0;}
 .topMonthLabel{font-size:14px;color:#666;text-align:center;margin-bottom:14px;}
 
+/* Category Editor */
 .catRow{display:flex;gap:8px;margin-top:10px;}
 .catRow span{width:40%;font-size:14px;color:#555;}
 .catRow input{width:60%;padding:10px;border-radius:10px;border:1px solid #ccc;}
@@ -55,7 +57,7 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
   <div id="topMonthLabel" class="topMonthLabel"></div>
   <button id="btnAdd"></button>
   <button id="btnSummary"></button>
-  <button class="sub" id="btnEditCategory"></button>
+  <button class="sub" id="btnEditCategory">カテゴリ名を編集</button>
 </div>
 
 <div id="add" class="card hidden">
@@ -67,11 +69,11 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
 </div>
 
 <div id="editCategory" class="card hidden">
-  <h3 id="editCatTitle" style="text-align:center;"></h3>
+  <h3 style="text-align:center;">カテゴリ名編集</h3>
   <select id="editLang"></select>
   <div id="categoryEditor"></div>
-  <button id="btnSaveCategory"></button>
-  <button class="back" id="btnBackCategory"></button>
+  <button id="btnSaveCategory">保存</button>
+  <button class="back" id="btnBackCategory">戻る</button>
 </div>
 
 <div id="summary" class="card hidden">
@@ -84,7 +86,7 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
   <div id="exportArea" class="hidden">
     <button class="sub" id="btnExportFamily"></button>
     <button class="sub" id="btnImportFamily"></button>
-    <button class="sub" id="btnImportPayPay"></button>
+    <button class="sub" id="btnImportPayPay">PayPay CSV</button>
     <input type="file" id="familyFile" accept=".json" hidden>
     <input type="file" id="paypayFile" accept=".csv" hidden>
   </div>
@@ -97,48 +99,16 @@ button.delete{background:#E57373;margin-top:6px;font-size:13px;}
 
 <script>
 const TEXT={
- ja:{
-  title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",
-  export:"エクスポート / 共有",
-  famExp:"家族共有用に書き出し",
-  famImp:"家族データを読み込み",
-  other:"詳細（例：文房具）",
-  monthTotalLabel:"今月の支出",
-  editCat:"カテゴリ名を編集",
-  editCatTitle:"カテゴリ名編集",
-  saved:"保存しました",
-  delete:"削除",
-  transfer:"トランスファー",
-  paypay:"PayPay CSV"
- },
- en:{
-  title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",
-  export:"Export / Share",
-  famExp:"Export for Family",
-  famImp:"Import Family Data",
-  other:"Detail",
-  monthTotalLabel:"This Month",
-  editCat:"Edit Categories",
-  editCatTitle:"Edit Category Names",
-  saved:"Saved",
-  delete:"Delete",
-  transfer:"Transfer",
-  paypay:"PayPay CSV"
- },
- ko:{
-  title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",
-  export:"내보내기 / 공유",
-  famExp:"가족 공유용 내보내기",
-  famImp:"가족 데이터 불러오기",
-  other:"상세",
-  monthTotalLabel:"이번 달",
-  editCat:"카테고리 이름 편집",
-  editCatTitle:"카테고리 편집",
-  saved:"저장되었습니다",
-  delete:"삭제",
-  transfer:"이체",
-  paypay:"PayPay CSV"
- }
+ ja:{title:"家計簿",add:"支出を入力",summary:"集計を見る",save:"保存",back:"戻る",
+     export:"エクスポート / 共有",famExp:"家族共有用に書き出し",
+     famImp:"家族データを読み込み",other:"詳細（例：文房具）",
+     monthTotalLabel:"今月の支出"},
+ en:{title:"Expense Tracker",add:"Add Expense",summary:"View Summary",save:"Save",back:"Back",
+     export:"Export / Share",famExp:"Export for Family",
+     famImp:"Import Family Data",other:"Detail",monthTotalLabel:"This Month"},
+ ko:{title:"가계부",add:"지출 입력",summary:"집계 보기",save:"저장",back:"뒤로",
+     export:"내보내기 / 공유",famExp:"가족 공유용 내보내기",
+     famImp:"가족 데이터 불러오기",other:"상세",monthTotalLabel:"이번 달"}
 };
 
 const CAT_DEFAULT={
@@ -167,6 +137,7 @@ const currentMonth=()=>new Date().toISOString().slice(0,7);
 let langVal=localStorage.getItem("lang")||"ja";
 let activeId=null;
 
+/* Language */
 function applyLang(){
  const t=TEXT[langVal];
  title.textContent=t.title;
@@ -174,13 +145,9 @@ function applyLang(){
  btnSummary.textContent=t.summary;
  btnSave.textContent=t.save;
  btnBack1.textContent=btnBack2.textContent=btnBackCategory.textContent=t.back;
- btnEditCategory.textContent=t.editCat;
- editCatTitle.textContent=t.editCatTitle;
  toggleExport.textContent=t.export;
  btnExportFamily.textContent=t.famExp;
  btnImportFamily.textContent=t.famImp;
- btnImportPayPay.textContent=t.paypay;
- btnSaveCategory.textContent=t.save;
  otherName.placeholder=t.other;
 
  category.innerHTML="";
@@ -189,6 +156,7 @@ function applyLang(){
  }
 }
 
+/* TOP */
 function renderTop(){
  const m=currentMonth();
  const sum=load().filter(x=>x.month===m&&x.category!=="transfer")
@@ -199,6 +167,7 @@ function renderTop(){
 
 category.onchange=()=>otherName.classList.toggle("hidden",category.value!=="other");
 
+/* Navigation */
 btnAdd.onclick=()=>{menu.classList.add("hidden");add.classList.remove("hidden");};
 btnSummary.onclick=()=>{menu.classList.add("hidden");summary.classList.remove("hidden");render();};
 btnBack1.onclick=btnBack2.onclick=()=>{
@@ -206,6 +175,7 @@ btnBack1.onclick=btnBack2.onclick=()=>{
  menu.classList.remove("hidden");renderTop();
 };
 
+/* Save */
 btnSave.onclick=()=>{
  const v=Number(amount.value); if(!v)return;
  const d=load();
@@ -215,12 +185,12 @@ btnSave.onclick=()=>{
  menu.classList.remove("hidden");add.classList.add("hidden");renderTop();
 };
 
+/* Category Editor */
 btnEditCategory.onclick=()=>{
  menu.classList.add("hidden");
  editCategory.classList.remove("hidden");
  renderCategoryEditor();
 };
-
 btnBackCategory.onclick=()=>{
  editCategory.classList.add("hidden");
  menu.classList.remove("hidden");
@@ -249,9 +219,10 @@ btnSaveCategory.onclick=()=>{
   CAT_LABELS[i.dataset.key][l]=i.value;
  });
  saveCats();applyLang();render();renderTop();
- alert(TEXT[langVal].saved);
+ alert("保存しました");
 };
 
+/* Summary */
 function render(){
  const d=load();
  const ms=[...new Set(d.map(x=>x.month))].sort().reverse();
@@ -267,7 +238,7 @@ function render(){
  });
 
  monthTotal.textContent=`${sum.toFixed(2)} ${currency.value}`;
- transferTotal.textContent=`${TEXT[langVal].transfer}: ${transfer.toFixed(2)} ${currency.value}`;
+ transferTotal.textContent=`Transfer: ${transfer.toFixed(2)} ${currency.value}`;
 
  categoryTotal.innerHTML=Object.keys(bc).map(k=>`
   <div class="breakdown">
@@ -281,10 +252,8 @@ function render(){
     <span class="date">${x.date}</span>
     <span class="amount">${x.amount.toFixed(2)} ${currency.value}</span>
    </div>
-   <div class="category">
-    ${x.category==="other"&&x.sub?`${CAT_LABELS.other[langVal]} (${x.sub})`:CAT_LABELS[x.category][langVal]}
-   </div>
-   ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">${TEXT[langVal].delete}</button>`:""}
+   <div class="category">${x.category==="other"&&x.sub?`${CAT_LABELS.other[langVal]} (${x.sub})`:CAT_LABELS[x.category][langVal]}</div>
+   ${activeId===x.id?`<button class="delete" onclick="del('${x.id}');event.stopPropagation()">削除</button>`:""}
   </div>`).join("");
 }
 
